@@ -1,5 +1,5 @@
 import { LogOut } from "lucide-react";
-import { logout, getCurrentUser } from "../../store/auth";
+import { getCurrentUser, logout } from "../../store/auth";
 
 export function Header() {
   const user = getCurrentUser();
