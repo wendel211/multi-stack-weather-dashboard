@@ -1,0 +1,79 @@
+version: "3.9"
+
+services:
+  api:
+    container_name: gdash_api
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    networks:
+      - gdash_network
+
+  frontend:
+    container_name: gdash_frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    networks:
+      - gdash_network
+
+  collector:
+    container_name: gdash_collector
+    build:
+      context: ./collector
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - rabbitmq
+    networks:
+      - gdash_network
+
+  worker:
+    container_name: gdash_worker
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - rabbitmq
+      - api
+    networks:
+      - gdash_network
+
+  mongo:
+    container_name: gdash_mongo
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - gdash_network
+
+  rabbitmq:
+    container_name: gdash_rabbitmq
+    image: rabbitmq:3-management
+    restart: unless-stopped
+    ports:
+      - "5672:5672"   # Porta do broker
+      - "15672:15672" # Dashboard web
+    networks:
+      - gdash_network
+
+networks:
+  gdash_network:
+    driver: bridge
+
+volumes:
+  mongo_data:
