@@ -28,6 +28,10 @@ function App() {
       <p className="read-the-docs">
         Click on the Vite and React logos to learn more
       </p>
+      <button className="bg-red-800 text-white px-8 py-2 rounded">
+  Teste Tailwind
+</button>
+
     </>
   )
 }
