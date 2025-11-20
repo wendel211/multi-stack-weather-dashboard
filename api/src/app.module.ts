@@ -1,10 +1,25 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { ConfigModule } from '@nestjs/config';
+
+import { MongoModule } from './database/mongo.module';
+
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
+import { WeatherModule } from './weather/weather.module';
+import { InsightsModule } from './insights/insights.module';
+import { IntegrationModule } from './integration/integration.module';
 
 @Module({
-  imports: [],
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    MongoModule,
+    AuthModule,
+    UsersModule,
+    WeatherModule,
+    InsightsModule,
+    IntegrationModule,
+  ],
 })
 export class AppModule {}
