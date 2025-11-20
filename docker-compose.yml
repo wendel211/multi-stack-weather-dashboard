@@ -1,79 +1,130 @@
 version: "3.9"
 
 services:
-  api:
-    container_name: gdash_api
-    build:
-      context: ./api
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    depends_on:
-      - mongo
-    env_file:
-      - .env
-    ports:
-      - "3000:3000"
-    networks:
-      - gdash_network
-
-  frontend:
-    container_name: gdash_frontend
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    ports:
-      - "5173:5173"
-    networks:
-      - gdash_network
-
-  collector:
-    container_name: gdash_collector
-    build:
-      context: ./collector
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    depends_on:
-      - rabbitmq
-    networks:
-      - gdash_network
-
-  worker:
-    container_name: gdash_worker
-    build:
-      context: ./worker
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    depends_on:
-      - rabbitmq
-      - api
-    networks:
-      - gdash_network
-
+  # =======================
+  # 1) MongoDB
+  # =======================
   mongo:
-    container_name: gdash_mongo
-    image: mongo:7
+    image: mongo:6.0
+    container_name: mongo
     restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
     ports:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
     networks:
-      - gdash_network
+      - weather_net
 
-  rabbitmq:
-    container_name: gdash_rabbitmq
-    image: rabbitmq:3-management
+  # =======================
+  # 2) Mongo Express (opcional mas útil)
+  # =======================
+  mongo-express:
+    image: mongo-express:latest
     restart: unless-stopped
     ports:
-      - "5672:5672"   # Porta do broker
-      - "15672:15672" # Dashboard web
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: root
+      ME_CONFIG_MONGODB_URL: mongodb://root:root@mongo:27017/
     networks:
-      - gdash_network
+      - weather_net
+    depends_on:
+      - mongo
 
-networks:
-  gdash_network:
-    driver: bridge
+  # =======================
+  # 3) RabbitMQ
+  # =======================
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672" # painel web
+    networks:
+      - weather_net
 
+  # =======================
+  # 4) Backend NestJS
+  # =======================
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: nest-api
+    restart: unless-stopped
+    env_file:
+      - ./api/.env
+    depends_on:
+      - mongo
+      - rabbitmq
+    ports:
+      - "3000:3000"
+    networks:
+      - weather_net
+    command: ["npm", "run", "start:prod"]
+
+  # =======================
+  # 5) Frontend React/Vite
+  # =======================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    restart: unless-stopped
+    env_file:
+      - ./frontend/.env
+    depends_on:
+      - api
+    ports:
+      - "5173:3000"
+    networks:
+      - weather_net
+
+  # =======================
+  # 6) Worker Go
+  # =======================
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    container_name: worker-go
+    restart: unless-stopped
+    env_file:
+      - ./worker/.env
+    depends_on:
+      - rabbitmq
+      - api
+    networks:
+      - weather_net
+
+  # =======================
+  # 7) Coletor Python
+  # =======================
+  collector:
+    build:
+      context: ./collector
+      dockerfile: Dockerfile
+    container_name: python-collector
+    restart: unless-stopped
+    env_file:
+      - ./collector/.env
+    depends_on:
+      - rabbitmq
+    networks:
+      - weather_net
+
+# =======================
+# Volumes e Redes
+# =======================
 volumes:
   mongo_data:
+
+networks:
+  weather_net:
+    driver: bridge

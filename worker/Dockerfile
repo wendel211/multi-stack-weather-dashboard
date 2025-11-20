@@ -1,8 +1,10 @@
-FROM golang:1.22
+FROM golang:1.21-alpine
 
 WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+
 COPY . .
+RUN go build -o worker
 
-RUN go mod tidy
-
-CMD ["go", "run", "main.go"]
+CMD ["./worker"]
