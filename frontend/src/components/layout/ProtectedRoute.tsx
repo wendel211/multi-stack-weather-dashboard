@@ -1,4 +1,5 @@
 import { Navigate } from "react-router-dom";
+import { Layout } from "./Layout";
 
 export function ProtectedRoute({ children }: { children: JSX.Element }) {
   const token = localStorage.getItem("token");
@@ -7,5 +8,5 @@ export function ProtectedRoute({ children }: { children: JSX.Element }) {
     return <Navigate to="/login" replace />;
   }
 
-  return children;
+  return <Layout>{children}</Layout>;
 }
