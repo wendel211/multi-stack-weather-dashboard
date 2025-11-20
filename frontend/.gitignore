@@ -7,9 +7,16 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
+.pnpm-store
+
+# Build output
 dist
 dist-ssr
+build
+
+# Local env files
 *.local
 
 # Editor directories and files
@@ -22,3 +29,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment variables (Segredos)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
