@@ -1,9 +1,11 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+
 import Login from "../pages/Login";
 import Dashboard from "../pages/Dashboard";
 import Users from "../pages/Users";
 import Explore from "../pages/Explore";
 import NotFound from "../pages/NotFound";
+
 import { ProtectedRoute } from "../components/layout/ProtectedRoute";
 
 export function AppRoutes() {
@@ -13,6 +15,7 @@ export function AppRoutes() {
 
         <Route path="/login" element={<Login />} />
 
+        {/* Rotas protegidas */}
         <Route
           path="/"
           element={
