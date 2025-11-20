@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/axios";
-
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+
+import { Loading } from "../components/ui/loading";
+import { useToast } from "../components/ui/toast";
 
 import {
   Dialog,
@@ -24,6 +26,12 @@ import {
 
 export default function Users() {
   const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
+
+  const { showToast } = useToast();
+
+  // PARA MODAIS
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
@@ -36,51 +44,48 @@ export default function Users() {
     role: "user",
   });
 
+  function handleChange(e: any) {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  }
+
   function loadUsers() {
-    api.get("/users").then((res) => {
-      setUsers(res.data);
-    });
+    setInitialLoad(true);
+    api
+      .get("/users")
+      .then((res) => setUsers(res.data))
+      .catch(() => showToast("Erro ao carregar usuários", "error"))
+      .finally(() => setInitialLoad(false));
   }
 
   useEffect(() => {
     loadUsers();
   }, []);
 
-  function handleChange(e: any) {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  }
+  if (initialLoad) return <Loading />;
 
+  // CRIAR
   async function handleCreate(e: any) {
     e.preventDefault();
 
-    await api.post("/users", form);
+    try {
+      setLoading(true);
 
-    setIsCreateOpen(false);
-    setForm({ name: "", email: "", password: "", role: "user" });
-    loadUsers();
+      await api.post("/users", form);
+
+      showToast("Usuário criado!", "success");
+      setIsCreateOpen(false);
+
+      setForm({ name: "", email: "", password: "", role: "user" });
+
+      loadUsers();
+    } catch {
+      showToast("Erro ao criar usuário", "error");
+    } finally {
+      setLoading(false);
+    }
   }
 
-  async function handleEdit(e: any) {
-    e.preventDefault();
-
-    await api.patch(`/users/${selectedUser._id}`, {
-      name: form.name,
-      email: form.email,
-      role: form.role,
-    });
-
-    setIsEditOpen(false);
-    setSelectedUser(null);
-    loadUsers();
-  }
-
-  async function deleteUser(id: string) {
-    if (!confirm("Deseja realmente excluir este usuário?")) return;
-
-    await api.delete(`/users/${id}`);
-    loadUsers();
-  }
-
+  // EDITAR
   function openEditModal(user: any) {
     setSelectedUser(user);
     setForm({
@@ -89,21 +94,61 @@ export default function Users() {
       password: "",
       role: user.role,
     });
-
     setIsEditOpen(true);
+  }
+
+  async function handleEdit(e: any) {
+    e.preventDefault();
+
+    try {
+      setLoading(true);
+
+      await api.patch(`/users/${selectedUser._id}`, {
+        name: form.name,
+        email: form.email,
+        role: form.role,
+      });
+
+      showToast("Usuário atualizado!", "success");
+
+      setIsEditOpen(false);
+      setSelectedUser(null);
+
+      loadUsers();
+    } catch {
+      showToast("Erro ao atualizar usuário", "error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // EXCLUIR
+  async function deleteUser(id: string) {
+    if (!confirm("Deseja realmente excluir este usuário?")) return;
+
+    try {
+      await api.delete(`/users/${id}`);
+      showToast("Usuário excluído!", "success");
+
+      loadUsers();
+    } catch {
+      showToast("Erro ao excluir usuário", "error");
+    }
   }
 
   return (
     <div className="space-y-6">
+
       <div className="flex justify-between">
         <h1 className="text-2xl font-semibold">Usuários</h1>
 
+        {/* CREATE MODAL */}
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <Button>Novo Usuário</Button>
+            <Button onClick={() => setIsCreateOpen(true)}>Novo Usuário</Button>
           </DialogTrigger>
 
-          <DialogContent>
+          <DialogContent onClose={() => setIsCreateOpen(false)}>
             <DialogHeader>
               <DialogTitle>Criar Usuário</DialogTitle>
               <DialogDescription>
@@ -112,6 +157,7 @@ export default function Users() {
             </DialogHeader>
 
             <form onSubmit={handleCreate} className="space-y-4">
+
               <Input
                 name="name"
                 placeholder="Nome"
@@ -148,8 +194,11 @@ export default function Users() {
               </select>
 
               <DialogFooter>
-                <Button type="submit">Criar</Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? "Salvando..." : "Criar"}
+                </Button>
               </DialogFooter>
+
             </form>
           </DialogContent>
         </Dialog>
@@ -184,7 +233,7 @@ export default function Users() {
               <Button
                 variant="outline"
                 onClick={() => deleteUser(u._id)}
-                className="border-red-400 text-red-600"
+                className="border-red-500 text-red-600"
               >
                 Excluir
               </Button>
@@ -193,14 +242,15 @@ export default function Users() {
         ))}
       </Table>
 
-      {/* MODAL DE EDIÇÃO */}
+      {/* EDIT MODAL */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent>
+        <DialogContent onClose={() => setIsEditOpen(false)}>
           <DialogHeader>
             <DialogTitle>Editar Usuário</DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleEdit} className="space-y-4">
+
             <Input
               name="name"
               placeholder="Nome"
@@ -228,11 +278,15 @@ export default function Users() {
             </select>
 
             <DialogFooter>
-              <Button type="submit">Salvar Alterações</Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? "Salvando..." : "Salvar"}
+              </Button>
             </DialogFooter>
+
           </form>
         </DialogContent>
       </Dialog>
+
     </div>
   );
 }

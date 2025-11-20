@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/axios";
+import { Loading } from "../components/ui/loading";
+import { useToast } from "../components/ui/toast";
 
 import {
   Card,
@@ -21,13 +23,37 @@ import {
 import { Button } from "../components/ui/button";
 
 export default function Dashboard() {
-  const [logs, setLogs] = useState([]);
+  const [logs, setLogs] = useState<any[]>([]);
   const [insights, setInsights] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
-    api.get("/weather/logs").then((res) => setLogs(res.data));
-    api.get("/weather/insights").then((res) => setInsights(res.data));
+    async function load() {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const logsRes = await api.get("/weather/logs");
+        const insightsRes = await api.get("/weather/insights");
+
+        setLogs(logsRes.data);
+        setInsights(insightsRes.data);
+
+      } catch (err) {
+        setError("Não foi possível carregar os dados do clima.");
+        showToast("Erro ao carregar dados do dashboard", "error");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    load();
   }, []);
+
+  if (loading) return <Loading />;
+  if (error) return <p className="text-red-600">{error}</p>;
 
   const latest = logs[0];
 
@@ -36,7 +62,7 @@ export default function Dashboard() {
 
       <h1 className="text-2xl font-semibold">Dashboard Climático</h1>
 
-      {/* 1️⃣ CARDS PRINCIPAIS */}
+      {/* CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
 
         <Card>
@@ -74,14 +100,14 @@ export default function Dashboard() {
             {latest?.condition ?? "--"}
           </CardContent>
         </Card>
-
       </div>
 
-      {/* 2️⃣ GRÁFICO */}
+      {/* GRÁFICO */}
       <Card>
         <CardHeader>
           <CardTitle>Temperatura ao longo do tempo</CardTitle>
         </CardHeader>
+
         <CardContent>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
@@ -90,14 +116,19 @@ export default function Dashboard() {
                 <XAxis dataKey="timestamp" hide />
                 <YAxis />
                 <Tooltip />
-                <Line type="monotone" dataKey="temperature" stroke="#2563eb" strokeWidth={2} />
+                <Line
+                  type="monotone"
+                  dataKey="temperature"
+                  stroke="#2563eb"
+                  strokeWidth={2}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </CardContent>
       </Card>
 
-      {/* 3️⃣ EXPORTAÇÕES */}
+      {/* EXPORTAÇÃO */}
       <div className="flex gap-3">
         <Button onClick={() => window.open("/api/weather/export.csv", "_blank")}>
           Exportar CSV
@@ -108,11 +139,12 @@ export default function Dashboard() {
         </Button>
       </div>
 
-      {/* 4️⃣ TABELA */}
+      {/* TABELA */}
       <Card>
         <CardHeader>
           <CardTitle>Registros de Clima</CardTitle>
         </CardHeader>
+
         <CardContent>
           <table className="w-full text-sm">
             <thead className="border-b">
@@ -124,6 +156,7 @@ export default function Dashboard() {
                 <th className="p-2">Condição</th>
               </tr>
             </thead>
+
             <tbody>
               {logs.map((log: any, idx: number) => (
                 <tr key={idx} className="border-b hover:bg-gray-50">
@@ -135,11 +168,12 @@ export default function Dashboard() {
                 </tr>
               ))}
             </tbody>
+
           </table>
         </CardContent>
       </Card>
 
-      {/* 5️⃣ INSIGHTS IA */}
+      {/* INSIGHTS */}
       {insights && (
         <Card className="border-blue-200 bg-blue-50">
           <CardHeader>
