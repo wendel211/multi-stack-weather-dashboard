@@ -21,17 +21,23 @@ type WeatherData struct {
 }
 
 func main() {
-	// Carregar configs diretamente do ambiente (Docker Compose)
+	// Carregar configs
 	rabbitURL := os.Getenv("RABBITMQ_URL")
 	apiURL := os.Getenv("API_URL")
 	queueName := os.Getenv("QUEUE_NAME")
 
-	if rabbitURL == "" || apiURL == "" || queueName == "" {
-		log.Fatal("❌ Variáveis RABBITMQ_URL, API_URL e QUEUE_NAME devem estar definidas.")
+	// Fallback para Docker
+	if apiURL == "" {
+		apiURL = "http://api:3000"
 	}
 
-	log.Println("🚀 Worker Go iniciado...")
-	log.Printf("📡 Conectando ao RabbitMQ: %s", rabbitURL)
+	if rabbitURL == "" || queueName == "" {
+		log.Fatal("❌ Variáveis RABBITMQ_URL e QUEUE_NAME devem estar definidas.")
+	}
+
+	log.Println("🚀 Worker Go iniciado!")
+	log.Printf("📡 RabbitMQ: %s", rabbitURL)
+	log.Printf("🔗 API URL usada para envio: %s", apiURL)
 
 	// Conectar ao RabbitMQ
 	conn, err := amqp.Dial(rabbitURL)
@@ -46,7 +52,6 @@ func main() {
 	}
 	defer ch.Close()
 
-	// Garantir que a fila existe
 	_, err = ch.QueueDeclare(
 		queueName,
 		true,
@@ -68,7 +73,6 @@ func main() {
 		false,
 		nil,
 	)
-
 	if err != nil {
 		log.Fatalf("❌ Erro ao consumir fila: %v", err)
 	}
@@ -79,7 +83,7 @@ func main() {
 
 	go func() {
 		for msg := range msgs {
-			log.Println("📨 Mensagem recebida do RabbitMQ")
+			log.Println("\n📨 Mensagem recebida do RabbitMQ!")
 
 			var data WeatherData
 			if err := json.Unmarshal(msg.Body, &data); err != nil {
@@ -88,18 +92,17 @@ func main() {
 				continue
 			}
 
-			log.Printf("🌡 Temp: %.2f°C | 💧 Umidade: %.2f%% | 🌬 Vento: %.2f km/h",
-				data.Temperature, data.Humidity, data.WindSpeed)
+			log.Printf("🌡 Temp: %.2f°C | 💧 Umidade: %.2f%% | 🌬 Vento: %.2f km/h | ☁ %s",
+				data.Temperature, data.Humidity, data.WindSpeed, data.Condition)
 
 			success := false
 
-			// Tentativa com exponencial rebote
 			for attempt := 1; attempt <= 5; attempt++ {
 				err := sendToAPI(apiURL, data)
 				if err == nil {
-					success = true
+					log.Println("✅ Dados enviados com sucesso!")
 					msg.Ack(false)
-					log.Println("✅ Dados enviados para API!")
+					success = true
 					break
 				}
 
@@ -109,7 +112,7 @@ func main() {
 			}
 
 			if !success {
-				log.Println("❌ Falha definitiva. Mensagem descartada.")
+				log.Println("❌ Falha após todas tentativas. Mensagem descartada.")
 				msg.Nack(false, false)
 			}
 		}
@@ -122,23 +125,24 @@ func sendToAPI(apiURL string, data WeatherData) error {
 	body, _ := json.Marshal(data)
 	url := fmt.Sprintf("%s/weather/logs", apiURL)
 
+	log.Printf("📤 Enviando para: %s", url)
+
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
 	if err != nil {
-		return err
+		return fmt.Errorf("erro criando requisição: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
-
 	if err != nil {
-		return err
+		return fmt.Errorf("erro enviando requisição: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 300 {
-		return fmt.Errorf("status HTTP %d", resp.StatusCode)
+		return fmt.Errorf("status HTTP inesperado %d", resp.StatusCode)
 	}
 
 	return nil
