@@ -12,7 +12,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
+  // DialogDescription,  ❌ REMOVIDO (causava erro TS6133)
   DialogFooter,
 } from "../components/ui/dialog";
 
@@ -74,9 +74,10 @@ export default function Users() {
     let list = [...users];
 
     if (search) {
-      list = list.filter((u) =>
-        u.name.toLowerCase().includes(search.toLowerCase()) ||
-        u.email.toLowerCase().includes(search.toLowerCase())
+      list = list.filter(
+        (u) =>
+          u.name.toLowerCase().includes(search.toLowerCase()) ||
+          u.email.toLowerCase().includes(search.toLowerCase())
       );
     }
 
@@ -158,14 +159,11 @@ export default function Users() {
 
   return (
     <div className="space-y-6">
-      
       {/* HEADER & AÇÕES */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        
         <h1 className="text-3xl font-semibold">Gerenciamento de Usuários</h1>
 
         <div className="flex gap-3">
-
           <Input
             placeholder="Buscar por nome ou email..."
             className="w-60 dark:bg-gray-900 dark:border-gray-700"
@@ -183,7 +181,6 @@ export default function Users() {
             <option value="user">Usuários comuns</option>
           </select>
 
-          {/* CREATE MODAL */}
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
               <Button className="shadow-md">Novo Usuário</Button>
@@ -194,7 +191,6 @@ export default function Users() {
 
       {/* TABELA */}
       <div className="rounded-lg border bg-white dark:bg-gray-900 dark:border-gray-700 shadow-sm overflow-hidden">
-        
         <Table>
           <TableHeader className="bg-gray-50 dark:bg-gray-800">
             <TableRow>
@@ -245,22 +241,21 @@ export default function Users() {
                   Excluir
                 </Button>
               </TableCell>
-
             </TableRow>
           ))}
         </Table>
       </div>
 
-
       {/* MODAL DE CRIAÇÃO */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent className="max-w-md dark:bg-gray-900 dark:text-gray-200 shadow-lg">
           <DialogHeader>
-            <DialogTitle><span className="text-xl">Criar Usuário</span></DialogTitle>
+            <DialogTitle>
+              <span className="text-xl">Criar Usuário</span>
+            </DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleCreate} className="space-y-4 mt-2">
-
             <Input
               name="name"
               placeholder="Nome"
@@ -305,16 +300,16 @@ export default function Users() {
         </DialogContent>
       </Dialog>
 
-
       {/* MODAL DE EDIÇÃO */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="max-w-md dark:bg-gray-900 dark:text-gray-200 shadow-lg">
           <DialogHeader>
-            <DialogTitle><span className="text-xl">Editar Usuário</span></DialogTitle>
+            <DialogTitle>
+              <span className="text-xl">Editar Usuário</span>
+            </DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleEdit} className="space-y-4">
-
             <Input
               name="name"
               placeholder="Nome"
@@ -346,11 +341,9 @@ export default function Users() {
                 {loading ? "Salvando..." : "Salvar Alterações"}
               </Button>
             </DialogFooter>
-
           </form>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 }
