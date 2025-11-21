@@ -26,6 +26,7 @@ import {
 
 export default function Users() {
   const [users, setUsers] = useState<any[]>([]);
+  const [filtered, setFiltered] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
 
@@ -34,6 +35,10 @@ export default function Users() {
   // MODAIS
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+
+  // FILTROS
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
 
   const [selectedUser, setSelectedUser] = useState<any>(null);
 
@@ -52,7 +57,10 @@ export default function Users() {
     setInitialLoad(true);
     api
       .get("/users")
-      .then((res) => setUsers(res.data))
+      .then((res) => {
+        setUsers(res.data);
+        setFiltered(res.data);
+      })
       .catch(() => showToast("Erro ao carregar usuários", "error"))
       .finally(() => setInitialLoad(false));
   }
@@ -60,6 +68,24 @@ export default function Users() {
   useEffect(() => {
     loadUsers();
   }, []);
+
+  // APLICAR FILTROS
+  useEffect(() => {
+    let list = [...users];
+
+    if (search) {
+      list = list.filter((u) =>
+        u.name.toLowerCase().includes(search.toLowerCase()) ||
+        u.email.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+
+    if (roleFilter !== "all") {
+      list = list.filter((u) => u.role === roleFilter);
+    }
+
+    setFiltered(list);
+  }, [search, roleFilter, users]);
 
   if (initialLoad) return <Loading />;
 
@@ -69,14 +95,12 @@ export default function Users() {
 
     try {
       setLoading(true);
-
       await api.post("/users", form);
 
       showToast("Usuário criado!", "success");
       setIsCreateOpen(false);
 
       setForm({ name: "", email: "", password: "", role: "user" });
-
       loadUsers();
     } catch {
       showToast("Erro ao criar usuário", "error");
@@ -102,7 +126,6 @@ export default function Users() {
 
     try {
       setLoading(true);
-
       await api.patch(`/users/${selectedUser._id}`, {
         name: form.name,
         email: form.email,
@@ -110,10 +133,8 @@ export default function Users() {
       });
 
       showToast("Usuário atualizado!", "success");
-
       setIsEditOpen(false);
       setSelectedUser(null);
-
       loadUsers();
     } catch {
       showToast("Erro ao atualizar usuário", "error");
@@ -129,7 +150,6 @@ export default function Users() {
     try {
       await api.delete(`/users/${id}`);
       showToast("Usuário excluído!", "success");
-
       loadUsers();
     } catch {
       showToast("Erro ao excluir usuário", "error");
@@ -138,104 +158,68 @@ export default function Users() {
 
   return (
     <div className="space-y-6">
+      
+      {/* HEADER & AÇÕES */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        
+        <h1 className="text-3xl font-semibold">Gerenciamento de Usuários</h1>
 
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold">Usuários</h1>
+        <div className="flex gap-3">
 
-        {/* CREATE */}
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button className="shadow-md">Novo Usuário</Button>
-          </DialogTrigger>
+          <Input
+            placeholder="Buscar por nome ou email..."
+            className="w-60 dark:bg-gray-900 dark:border-gray-700"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
 
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle><span className="text-xl font-bold">Criar Usuário</span></DialogTitle>
-              <DialogDescription>
-                <p className="text-sm">
-                  Preencha os dados abaixo para registrar um novo usuário.
-                </p>
-              </DialogDescription>
-            </DialogHeader>
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="border p-2 rounded dark:bg-gray-900 dark:border-gray-700"
+          >
+            <option value="all">Todos os perfis</option>
+            <option value="admin">Administradores</option>
+            <option value="user">Usuários comuns</option>
+          </select>
 
-            <form onSubmit={handleCreate} className="space-y-4 mt-2">
-
-              <Input
-                name="name"
-                placeholder="Nome"
-                value={form.name}
-                onChange={handleChange}
-                required
-                className="focus:ring-2 focus:ring-blue-500"
-              />
-
-              <Input
-                name="email"
-                placeholder="Email"
-                value={form.email}
-                onChange={handleChange}
-                required
-                className="focus:ring-2 focus:ring-blue-500"
-              />
-
-              <Input
-                name="password"
-                placeholder="Senha"
-                type="password"
-                value={form.password}
-                onChange={handleChange}
-                required
-                className="focus:ring-2 focus:ring-blue-500"
-              />
-
-              <select
-                name="role"
-                value={form.role}
-                onChange={handleChange}
-                className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="user">Usuário</option>
-                <option value="admin">Administrador</option>
-              </select>
-
-              <DialogFooter>
-                <Button type="submit" disabled={loading} className="w-full">
-                  {loading ? "Salvando..." : "Criar Usuário"}
-                </Button>
-              </DialogFooter>
-
-            </form>
-          </DialogContent>
-        </Dialog>
+          {/* CREATE MODAL */}
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogTrigger asChild>
+              <Button className="shadow-md">Novo Usuário</Button>
+            </DialogTrigger>
+          </Dialog>
+        </div>
       </div>
 
       {/* TABELA */}
-      <div className="rounded-lg border bg-white shadow-sm overflow-hidden">
+      <div className="rounded-lg border bg-white dark:bg-gray-900 dark:border-gray-700 shadow-sm overflow-hidden">
+        
         <Table>
-          <TableHeader className="bg-gray-50">
+          <TableHeader className="bg-gray-50 dark:bg-gray-800">
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
+              <TableHead>Perfil</TableHead>
               <TableHead>Criado em</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
 
-          {users.map((u) => (
+          {filtered.map((u) => (
             <TableRow
               key={u._id}
-              className="hover:bg-blue-50/40 transition-colors"
+              className="hover:bg-blue-50 dark:hover:bg-blue-900/40 transition-colors"
             >
-              <TableCell>{u.name}</TableCell>
+              <TableCell className="capitalize">{u.name}</TableCell>
               <TableCell>{u.email}</TableCell>
 
               <TableCell>
                 <span
-                  className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  className={`px-3 py-1 rounded-full text-xs font-medium ${
                     u.role === "admin"
-                      ? "bg-blue-100 text-blue-700"
-                      : "bg-gray-100 text-gray-700"
+                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                      : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
                   }`}
                 >
                   {u.role}
@@ -248,7 +232,7 @@ export default function Users() {
                 <Button
                   variant="outline"
                   onClick={() => openEditModal(u)}
-                  className="hover:border-blue-500 hover:text-blue-600"
+                  className="hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400"
                 >
                   Editar
                 </Button>
@@ -256,7 +240,7 @@ export default function Users() {
                 <Button
                   variant="outline"
                   onClick={() => deleteUser(u._id)}
-                  className="border-red-500 text-red-600 hover:bg-red-50"
+                  className="border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                 >
                   Excluir
                 </Button>
@@ -267,9 +251,64 @@ export default function Users() {
         </Table>
       </div>
 
-      {/* EDIT MODAL */}
+
+      {/* MODAL DE CRIAÇÃO */}
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <DialogContent className="max-w-md dark:bg-gray-900 dark:text-gray-200 shadow-lg">
+          <DialogHeader>
+            <DialogTitle><span className="text-xl">Criar Usuário</span></DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleCreate} className="space-y-4 mt-2">
+
+            <Input
+              name="name"
+              placeholder="Nome"
+              value={form.name}
+              onChange={handleChange}
+              required
+            />
+
+            <Input
+              name="email"
+              placeholder="Email"
+              value={form.email}
+              onChange={handleChange}
+              required
+            />
+
+            <Input
+              name="password"
+              placeholder="Senha"
+              type="password"
+              value={form.password}
+              onChange={handleChange}
+              required
+            />
+
+            <select
+              name="role"
+              value={form.role}
+              onChange={handleChange}
+              className="border p-2 rounded w-full dark:bg-gray-800 dark:border-gray-700"
+            >
+              <option value="user">Usuário</option>
+              <option value="admin">Administrador</option>
+            </select>
+
+            <DialogFooter>
+              <Button className="w-full" disabled={loading}>
+                {loading ? "Salvando..." : "Criar Usuário"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+
+      {/* MODAL DE EDIÇÃO */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md dark:bg-gray-900 dark:text-gray-200 shadow-lg">
           <DialogHeader>
             <DialogTitle><span className="text-xl">Editar Usuário</span></DialogTitle>
           </DialogHeader>
@@ -282,7 +321,6 @@ export default function Users() {
               value={form.name}
               onChange={handleChange}
               required
-              className="focus:ring-2 focus:ring-blue-500"
             />
 
             <Input
@@ -291,21 +329,20 @@ export default function Users() {
               value={form.email}
               onChange={handleChange}
               required
-              className="focus:ring-2 focus:ring-blue-500"
             />
 
             <select
               name="role"
               value={form.role}
               onChange={handleChange}
-              className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-500"
+              className="border p-2 rounded w-full dark:bg-gray-800 dark:border-gray-700"
             >
               <option value="user">Usuário</option>
               <option value="admin">Administrador</option>
             </select>
 
             <DialogFooter>
-              <Button type="submit" disabled={loading} className="w-full">
+              <Button className="w-full" disabled={loading}>
                 {loading ? "Salvando..." : "Salvar Alterações"}
               </Button>
             </DialogFooter>
