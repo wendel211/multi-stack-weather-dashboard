@@ -67,31 +67,33 @@ export class WeatherService {
   }
 
   // ---------------------------
-  // 🚀 INTEGRAÇÃO COM IA-SERVICE
-  // ---------------------------
-  async generateInsights() {
-    try {
-      const AI_URL = process.env.AI_URL ?? 'http://ai-service:8001';
+// 🚀 INTEGRAÇÃO COM IA-SERVICE
+// ---------------------------
+async generateInsights() {
+  try {
+    const AI_URL = process.env.AI_URL ?? "http://ai-service:8001";
 
-      const response = await axios.post(`${AI_URL}/generate-insights`);
+    // endpoint correto
+    const response = await axios.post(`${AI_URL}/generate`, {
+      temperature: 25, // coloque valores reais ou deixe para o front mandar
+      humidity: 50,
+      wind: 10,
+      condition: "Clear",
+    });
 
-      return {
-        success: true,
-        raw: response.data,
-        ...response.data, // insights, resumo, etc caso seja JSON
-      };
-    } catch (error) {
-      console.error('❌ Erro ao chamar IA-Service:', error.message);
+    return {
+      success: true,
+      ...response.data,
+    };
 
-      // fallback elegante caso a IA esteja fora do ar
-      return {
-        success: false,
-        fallback: true,
-        resumo: 'Não foi possível gerar insights no momento.',
-        alertas: ['Serviço de IA indisponível'],
-        tendencias: [],
-        classificacao: 'Indefinido',
-      };
-    }
+  } catch (error: any) {
+    console.error("❌ Erro ao chamar IA-Service:", error.message);
+
+    return {
+      success: false,
+      fallback: true,
+      message: "Não foi possível gerar insights no momento.",
+    };
   }
+}
 }

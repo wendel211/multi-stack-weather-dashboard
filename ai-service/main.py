@@ -1,38 +1,54 @@
-import os
-import requests
 from fastapi import FastAPI
-from dotenv import load_dotenv
-from utils.prompt import build_insight_prompt
-from openai import OpenAI
+from pydantic import BaseModel
+import httpx
+import os
 
-load_dotenv()
+app = FastAPI()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 NEST_API_URL = os.getenv("NEST_API_URL", "http://api:3000")
 
-app = FastAPI()
-client = OpenAI(api_key=OPENAI_API_KEY)
+class InsightRequest(BaseModel):
+    temperature: float
+    humidity: float
+    wind: float
+    condition: str
+
+@app.post("/generate")
+async def generate_insight(data: InsightRequest):
+    if not OPENAI_API_KEY:
+        return {"error": "Faltando variável OPENAI_API_KEY"}
+
+    prompt = (
+        f"Analise os seguintes dados climáticos:\n"
+        f"Temperatura: {data.temperature}°C\n"
+        f"Umidade: {data.humidity}%\n"
+        f"Vento: {data.wind} km/h\n"
+        f"Condição: {data.condition}\n\n"
+        f"Crie um insight curto e útil."
+    )
+
+    headers = {
+        "Authorization": f"Bearer {OPENAI_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "model": "gpt-4o-mini",
+        "messages": [{"role": "user", "content": prompt}]
+    }
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=30
+        )
+
+        result = response.json()
+        return {"message": result["choices"][0]["message"]["content"]}
 
 @app.get("/health")
 def health():
-    return {"status": "AI service ok"}
-
-@app.post("/generate-insights")
-def generate_insights():
-    # buscar dados do NestJS
-    r = requests.get(f"{NEST_API_URL}/weather/logs")
-    weather_data = r.json()
-
-    prompt = build_insight_prompt(weather_data)
-
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": "Você é um analisador climático especializado."},
-            {"role": "user", "content": prompt}
-        ],
-    )
-
-    ai_text = response.choices[0].message["content"]
-
-    return {"insights": ai_text}
+    return {"status": "ok"}

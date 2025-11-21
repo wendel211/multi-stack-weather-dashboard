@@ -27,6 +27,7 @@ export default function Dashboard() {
   const [filteredLogs, setFilteredLogs] = useState<any[]>([]);
   const [insights, setInsights] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
   const { showToast } = useToast();
 
   // FILTROS
@@ -40,6 +41,7 @@ export default function Dashboard() {
     async function load() {
       try {
         setLoading(true);
+
         const logsRes = await api.get("/weather/logs");
         const insightsRes = await api.get("/weather/insights");
 
@@ -110,7 +112,7 @@ export default function Dashboard() {
         <CardTitle className="mb-4">Filtros Avançados</CardTitle>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-
+          
           {/* Intervalo de datas */}
           <div>
             <label>Data inicial</label>
@@ -288,17 +290,70 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
-      {/* INSIGHTS */}
+      {/* INSIGHTS DE IA */}
       {insights && (
-        <Card className="border-blue-200 bg-blue-50">
+        <Card className="border-blue-300 bg-blue-50 dark:bg-blue-950 dark:border-blue-900">
           <CardHeader>
-            <CardTitle>🔍 Insights de IA</CardTitle>
+            <CardTitle className="text-xl">🔍 Insights Inteligentes</CardTitle>
           </CardHeader>
-          <CardContent className="text-gray-700">
-            {insights.message}
+
+          <CardContent className="space-y-4 text-gray-700 dark:text-gray-300">
+
+            {/* Resumo */}
+            {insights.resumo && (
+              <div>
+                <h3 className="font-semibold text-lg mb-1">Resumo</h3>
+                <p>{insights.resumo}</p>
+              </div>
+            )}
+
+            {/* Tendências */}
+            {insights.tendencias?.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-lg">Tendências</h3>
+                <ul className="list-disc ml-6 space-y-1">
+                  {insights.tendencias.map((t: string, idx: number) => (
+                    <li key={idx}>{t}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Alertas */}
+            {insights.alertas?.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-lg text-red-600 dark:text-red-400">
+                  ⚠️ Alertas
+                </h3>
+                <ul className="list-disc ml-6 space-y-1">
+                  {insights.alertas.map((a: string, idx: number) => (
+                    <li key={idx}>{a}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Classificação */}
+            {insights.classificacao && (
+              <div className="mt-2">
+                <h3 className="font-semibold text-lg">Classificação Geral</h3>
+                <span className="px-4 py-2 rounded-full text-white bg-blue-600">
+                  {insights.classificacao}
+                </span>
+              </div>
+            )}
+
+            {/* Fallback caso venha texto bruto */}
+            {!insights.resumo &&
+              !insights.alertas &&
+              !insights.tendencias &&
+              insights.insights && (
+                <p>{insights.insights}</p>
+            )}
           </CardContent>
         </Card>
       )}
+
     </div>
   );
 }
