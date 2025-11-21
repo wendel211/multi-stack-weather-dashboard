@@ -24,25 +24,29 @@ import { Button } from "../components/ui/button";
 
 export default function Dashboard() {
   const [logs, setLogs] = useState<any[]>([]);
+  const [filteredLogs, setFilteredLogs] = useState<any[]>([]);
   const [insights, setInsights] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const { showToast } = useToast();
+
+  // FILTROS
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [condition, setCondition] = useState("all");
+  const [tempMin, setTempMin] = useState(0);
+  const [tempMax, setTempMax] = useState(60);
 
   useEffect(() => {
     async function load() {
       try {
         setLoading(true);
-        setError(null);
-
         const logsRes = await api.get("/weather/logs");
         const insightsRes = await api.get("/weather/insights");
 
         setLogs(logsRes.data);
+        setFilteredLogs(logsRes.data);
         setInsights(insightsRes.data);
-
       } catch (err) {
-        setError("Não foi possível carregar os dados do clima.");
         showToast("Erro ao carregar dados do dashboard", "error");
       } finally {
         setLoading(false);
@@ -52,15 +56,125 @@ export default function Dashboard() {
     load();
   }, []);
 
-  if (loading) return <Loading />;
-  if (error) return <p className="text-red-600">{error}</p>;
+  function applyFilters() {
+    let list = [...logs];
 
-  const latest = logs[0];
+    // FILTRO — INTERVALO DE DATAS
+    if (startDate) {
+      list = list.filter(
+        (l) => new Date(l.timestamp) >= new Date(startDate)
+      );
+    }
+    if (endDate) {
+      list = list.filter(
+        (l) => new Date(l.timestamp) <= new Date(endDate + " 23:59:59")
+      );
+    }
+
+    // FILTRO — CONDIÇÃO
+    if (condition !== "all") {
+      list = list.filter((l) => l.condition === condition);
+    }
+
+    // FILTRO — POR TEMPERATURA
+    list = list.filter(
+      (l) => l.temperature >= tempMin && l.temperature <= tempMax
+    );
+
+    setFilteredLogs(list);
+
+    showToast("Filtros aplicados!", "success");
+  }
+
+  function resetFilters() {
+    setStartDate("");
+    setEndDate("");
+    setCondition("all");
+    setTempMin(0);
+    setTempMax(60);
+    setFilteredLogs(logs);
+
+    showToast("Filtros limpos.", "success");
+  }
+
+  if (loading) return <Loading />;
+
+  const latest = filteredLogs[0];
 
   return (
     <div className="space-y-6">
-
       <h1 className="text-2xl font-semibold">Dashboard Climático</h1>
+
+      {/* FILTROS */}
+      <Card className="p-4">
+        <CardTitle className="mb-4">Filtros Avançados</CardTitle>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+          {/* Intervalo de datas */}
+          <div>
+            <label>Data inicial</label>
+            <input
+              type="date"
+              className="border w-full p-2 rounded"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label>Data final</label>
+            <input
+              type="date"
+              className="border w-full p-2 rounded"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
+
+          {/* Condição */}
+          <div>
+            <label>Condição</label>
+            <select
+              className="border w-full p-2 rounded"
+              value={condition}
+              onChange={(e) => setCondition(e.target.value)}
+            >
+              <option value="all">Todas</option>
+              <option value="Clear">Ensolarado ☀</option>
+              <option value="Cloudy">Nublado ☁</option>
+              <option value="Rain">Chuva 🌧</option>
+              <option value="Wind">Vento 🌬</option>
+            </select>
+          </div>
+
+          {/* Temperatura */}
+          <div>
+            <label>Temperatura (min - max)</label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                className="border w-full p-2 rounded"
+                value={tempMin}
+                onChange={(e) => setTempMin(Number(e.target.value))}
+              />
+              <input
+                type="number"
+                className="border w-full p-2 rounded"
+                value={tempMax}
+                onChange={(e) => setTempMax(Number(e.target.value))}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-4">
+          <Button onClick={applyFilters}>Aplicar</Button>
+          <Button variant="outline" onClick={resetFilters}>
+            Limpar
+          </Button>
+        </div>
+      </Card>
 
       {/* CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -111,7 +225,7 @@ export default function Dashboard() {
         <CardContent>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={logs}>
+              <LineChart data={filteredLogs}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="timestamp" hide />
                 <YAxis />
@@ -142,7 +256,7 @@ export default function Dashboard() {
       {/* TABELA */}
       <Card>
         <CardHeader>
-          <CardTitle>Registros de Clima</CardTitle>
+          <CardTitle>Registros Filtrados</CardTitle>
         </CardHeader>
 
         <CardContent>
@@ -158,9 +272,11 @@ export default function Dashboard() {
             </thead>
 
             <tbody>
-              {logs.map((log: any, idx: number) => (
+              {filteredLogs.map((log: any, idx: number) => (
                 <tr key={idx} className="border-b hover:bg-gray-50">
-                  <td className="p-2">{new Date(log.timestamp).toLocaleString()}</td>
+                  <td className="p-2">
+                    {new Date(log.timestamp).toLocaleString()}
+                  </td>
                   <td className="p-2">{log.temperature}°C</td>
                   <td className="p-2">{log.humidity}%</td>
                   <td className="p-2">{log.wind_speed} km/h</td>
@@ -168,7 +284,6 @@ export default function Dashboard() {
                 </tr>
               ))}
             </tbody>
-
           </table>
         </CardContent>
       </Card>

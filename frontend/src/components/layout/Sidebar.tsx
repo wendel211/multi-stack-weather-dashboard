@@ -1,3 +1,4 @@
+// Sidebar.tsx
 import { NavLink } from "react-router-dom";
 import { LayoutDashboard, Users, Compass } from "lucide-react";
 
@@ -9,10 +10,15 @@ export function Sidebar() {
   ];
 
   return (
-    <aside className="w-56 h-full border-r bg-white shadow-sm">
-      <div className="p-4 font-bold text-lg">GDASH Panel</div>
+    <aside className="
+      w-60 h-full border-r bg-white/80 backdrop-blur-xl shadow-lg
+      flex flex-col
+    ">
+      <div className="p-5 font-bold text-xl tracking-tight text-blue-600">
+        GDASH Panel
+      </div>
 
-      <nav className="flex flex-col gap-1 px-3 mt-4">
+      <nav className="flex flex-col gap-1 px-4 mt-2">
         {menu.map((item) => {
           const Icon = item.icon;
 
@@ -21,8 +27,14 @@ export function Sidebar() {
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors
-                ${isActive ? "bg-gray-100 text-blue-600" : "hover:bg-gray-50"}`
+                `
+                  flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm
+                  transition-all duration-200
+                  ${isActive
+                    ? "bg-blue-50 text-blue-600 shadow-sm font-semibold"
+                    : "hover:bg-gray-100"
+                  }
+                `
               }
             >
               <Icon size={18} />

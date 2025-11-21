@@ -31,7 +31,7 @@ export default function Users() {
 
   const { showToast } = useToast();
 
-  // PARA MODAIS
+  // MODAIS
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
@@ -139,24 +139,26 @@ export default function Users() {
   return (
     <div className="space-y-6">
 
-      <div className="flex justify-between">
+      <div className="flex justify-between items-center">
         <h1 className="text-2xl font-semibold">Usuários</h1>
 
-        {/* CREATE MODAL */}
+        {/* CREATE */}
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => setIsCreateOpen(true)}>Novo Usuário</Button>
+            <Button className="shadow-md">Novo Usuário</Button>
           </DialogTrigger>
 
-          <DialogContent onClose={() => setIsCreateOpen(false)}>
+          <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Criar Usuário</DialogTitle>
+              <DialogTitle><span className="text-xl font-bold">Criar Usuário</span></DialogTitle>
               <DialogDescription>
-                Preencha as informações para registrar um novo usuário.
+                <p className="text-sm">
+                  Preencha os dados abaixo para registrar um novo usuário.
+                </p>
               </DialogDescription>
             </DialogHeader>
 
-            <form onSubmit={handleCreate} className="space-y-4">
+            <form onSubmit={handleCreate} className="space-y-4 mt-2">
 
               <Input
                 name="name"
@@ -164,6 +166,7 @@ export default function Users() {
                 value={form.name}
                 onChange={handleChange}
                 required
+                className="focus:ring-2 focus:ring-blue-500"
               />
 
               <Input
@@ -172,6 +175,7 @@ export default function Users() {
                 value={form.email}
                 onChange={handleChange}
                 required
+                className="focus:ring-2 focus:ring-blue-500"
               />
 
               <Input
@@ -181,21 +185,22 @@ export default function Users() {
                 value={form.password}
                 onChange={handleChange}
                 required
+                className="focus:ring-2 focus:ring-blue-500"
               />
 
               <select
                 name="role"
                 value={form.role}
                 onChange={handleChange}
-                className="border p-2 rounded w-full"
+                className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-500"
               >
                 <option value="user">Usuário</option>
                 <option value="admin">Administrador</option>
               </select>
 
               <DialogFooter>
-                <Button type="submit" disabled={loading}>
-                  {loading ? "Salvando..." : "Criar"}
+                <Button type="submit" disabled={loading} className="w-full">
+                  {loading ? "Salvando..." : "Criar Usuário"}
                 </Button>
               </DialogFooter>
 
@@ -205,48 +210,68 @@ export default function Users() {
       </div>
 
       {/* TABELA */}
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nome</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead>Criado em</TableHead>
-            <TableHead>Ações</TableHead>
-          </TableRow>
-        </TableHeader>
+      <div className="rounded-lg border bg-white shadow-sm overflow-hidden">
+        <Table>
+          <TableHeader className="bg-gray-50">
+            <TableRow>
+              <TableHead>Nome</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Criado em</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
 
-        {users.map((u) => (
-          <TableRow key={u._id}>
-            <TableCell>{u.name}</TableCell>
-            <TableCell>{u.email}</TableCell>
-            <TableCell>{u.role}</TableCell>
-            <TableCell>
-              {new Date(u.createdAt).toLocaleString()}
-            </TableCell>
+          {users.map((u) => (
+            <TableRow
+              key={u._id}
+              className="hover:bg-blue-50/40 transition-colors"
+            >
+              <TableCell>{u.name}</TableCell>
+              <TableCell>{u.email}</TableCell>
 
-            <TableCell className="flex gap-2">
-              <Button variant="outline" onClick={() => openEditModal(u)}>
-                Editar
-              </Button>
+              <TableCell>
+                <span
+                  className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    u.role === "admin"
+                      ? "bg-blue-100 text-blue-700"
+                      : "bg-gray-100 text-gray-700"
+                  }`}
+                >
+                  {u.role}
+                </span>
+              </TableCell>
 
-              <Button
-                variant="outline"
-                onClick={() => deleteUser(u._id)}
-                className="border-red-500 text-red-600"
-              >
-                Excluir
-              </Button>
-            </TableCell>
-          </TableRow>
-        ))}
-      </Table>
+              <TableCell>{new Date(u.createdAt).toLocaleString()}</TableCell>
+
+              <TableCell className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => openEditModal(u)}
+                  className="hover:border-blue-500 hover:text-blue-600"
+                >
+                  Editar
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={() => deleteUser(u._id)}
+                  className="border-red-500 text-red-600 hover:bg-red-50"
+                >
+                  Excluir
+                </Button>
+              </TableCell>
+
+            </TableRow>
+          ))}
+        </Table>
+      </div>
 
       {/* EDIT MODAL */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent onClose={() => setIsEditOpen(false)}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Editar Usuário</DialogTitle>
+            <DialogTitle><span className="text-xl">Editar Usuário</span></DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleEdit} className="space-y-4">
@@ -257,6 +282,7 @@ export default function Users() {
               value={form.name}
               onChange={handleChange}
               required
+              className="focus:ring-2 focus:ring-blue-500"
             />
 
             <Input
@@ -265,21 +291,22 @@ export default function Users() {
               value={form.email}
               onChange={handleChange}
               required
+              className="focus:ring-2 focus:ring-blue-500"
             />
 
             <select
               name="role"
               value={form.role}
               onChange={handleChange}
-              className="border p-2 rounded w-full"
+              className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-500"
             >
               <option value="user">Usuário</option>
               <option value="admin">Administrador</option>
             </select>
 
             <DialogFooter>
-              <Button type="submit" disabled={loading}>
-                {loading ? "Salvando..." : "Salvar"}
+              <Button type="submit" disabled={loading} className="w-full">
+                {loading ? "Salvando..." : "Salvar Alterações"}
               </Button>
             </DialogFooter>
 
