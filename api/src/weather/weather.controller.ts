@@ -20,19 +20,27 @@ import { Response } from 'express';
 export class WeatherController {
   constructor(private readonly weatherService: WeatherService) {}
 
-  /** endpoint usado pelo worker Go */
+  /** 
+   * Endpoint usado exclusivamente pelo worker Go
+   * Não tem JWT 
+   */
   @Post('logs')
   create(@Body() dto: CreateWeatherDto) {
     return this.weatherService.create(dto);
   }
 
-  /** endpoint consumido pelo frontend */
+  /**
+   * Endpoint consumido pelo frontend (autenticado)
+   */
   @UseGuards(JwtAuthGuard)
   @Get('logs')
   findAll(@Query() query: QueryWeatherDto) {
     return this.weatherService.findAll(query);
   }
 
+  /**
+   * Export CSV
+   */
   @UseGuards(JwtAuthGuard)
   @Get('export.csv')
   @Header('Content-Type', 'text/csv')
@@ -41,6 +49,9 @@ export class WeatherController {
     return this.weatherService.exportCSV();
   }
 
+  /**
+   * Export XLSX
+   */
   @UseGuards(JwtAuthGuard)
   @Get('export.xlsx')
   async exportXLSX(@Res() res: Response) {
@@ -53,5 +64,14 @@ export class WeatherController {
     });
 
     res.send(buffer);
+  }
+
+  /**
+   * 🚀 Novo: Gerar Insights via IA
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('insights')
+  async generateInsights() {
+    return this.weatherService.generateInsights();
   }
 }

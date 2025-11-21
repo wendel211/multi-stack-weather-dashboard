@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 
 import { Model } from 'mongoose';
@@ -6,6 +6,7 @@ import { WeatherLog, WeatherLogDocument } from './schemas/weather-log.schema';
 import { CreateWeatherDto } from './dto/create-weather.dto';
 import { QueryWeatherDto } from './dto/query-weather.dto';
 
+import axios from 'axios';
 import { Parser } from 'json2csv';
 import * as ExcelJS from 'exceljs';
 
@@ -16,6 +17,9 @@ export class WeatherService {
     private weatherModel: Model<WeatherLogDocument>,
   ) {}
 
+  // ---------------------------
+  // CRUD & LISTAGEM NORMAL
+  // ---------------------------
   async create(dto: CreateWeatherDto) {
     return this.weatherModel.create(dto);
   }
@@ -33,6 +37,9 @@ export class WeatherService {
     return this.weatherModel.find(filter).sort({ timestamp: -1 }).exec();
   }
 
+  // ---------------------------
+  // EXPORTAÇÕES
+  // ---------------------------
   async exportCSV() {
     const logs = await this.weatherModel.find().lean().exec();
     const parser = new Parser();
@@ -41,7 +48,7 @@ export class WeatherService {
 
   async exportXLSX() {
     const logs = await this.weatherModel.find().lean().exec();
-    
+
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet('Weather Logs');
 
@@ -57,5 +64,34 @@ export class WeatherService {
 
     const buffer = await workbook.xlsx.writeBuffer();
     return buffer;
+  }
+
+  // ---------------------------
+  // 🚀 INTEGRAÇÃO COM IA-SERVICE
+  // ---------------------------
+  async generateInsights() {
+    try {
+      const AI_URL = process.env.AI_URL ?? 'http://ai-service:8001';
+
+      const response = await axios.post(`${AI_URL}/generate-insights`);
+
+      return {
+        success: true,
+        raw: response.data,
+        ...response.data, // insights, resumo, etc caso seja JSON
+      };
+    } catch (error) {
+      console.error('❌ Erro ao chamar IA-Service:', error.message);
+
+      // fallback elegante caso a IA esteja fora do ar
+      return {
+        success: false,
+        fallback: true,
+        resumo: 'Não foi possível gerar insights no momento.',
+        alertas: ['Serviço de IA indisponível'],
+        tendencias: [],
+        classificacao: 'Indefinido',
+      };
+    }
   }
 }
