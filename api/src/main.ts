@@ -14,6 +14,9 @@ async function bootstrap() {
     credentials: false,
   });
 
+  // ✅ PREFIXO GLOBAL - Todas as rotas terão /api
+  app.setGlobalPrefix('api');
+
   // Validation
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
@@ -34,7 +37,8 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, config);
 
-  SwaggerModule.setup('api', app, document, {
+  // ✅ SWAGGER em /docs (não em /api)
+  SwaggerModule.setup('docs', app, document, {
     swaggerOptions: {
       persistAuthorization: true,
     },
@@ -47,5 +51,6 @@ async function bootstrap() {
   // Start app
   await app.listen(3000);
   console.log(`🚀 API rodando em http://localhost:3000/api`);
+  console.log(`📄 Swagger disponível em http://localhost:3000/docs`);
 }
 bootstrap();

@@ -35,11 +35,11 @@ services:
     build:
       context: ./frontend
       args:
-        VITE_API_URL: "http://api:3000"
+        VITE_API_URL: ${VITE_API_URL}
     ports:
       - "3001:80"
     environment:
-      VITE_API_URL: "http://api:3000"
+      VITE_API_URL: ${VITE_API_URL}
     networks:
       - weather_net
 
