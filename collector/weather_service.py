@@ -10,8 +10,8 @@ logger = logging.getLogger(__name__)
 class WeatherService:
     def __init__(self):
         self.api_url = os.getenv('WEATHER_API_URL', 'https://api.open-meteo.com/v1/forecast')
-        self.latitude = float(os.getenv('CITY_LAT', '-12.97'))
-        self.longitude = float(os.getenv('CITY_LON', '-38.51'))
+        self.latitude = float(os.getenv('CITY_LAT', '-12.27'))
+        self.longitude = float(os.getenv('CITY_LON', '-38.97'))
         
         logger.info(f"🌍 Configurado para: Lat {self.latitude}, Lon {self.longitude}")
     
@@ -21,7 +21,6 @@ class WeatherService:
         Retorna dict com: temperature, humidity, wind_speed, condition, timestamp
         """
         try:
-            # Parâmetros para a API Open-Meteo
             params = {
                 'latitude': self.latitude,
                 'longitude': self.longitude,
@@ -36,7 +35,6 @@ class WeatherService:
             data = response.json()
             current = data.get('current', {})
             
-            # Mapeia o weather_code para condição legível
             weather_code = current.get('weather_code', 0)
             condition = self._map_weather_code(weather_code)
             
@@ -48,10 +46,12 @@ class WeatherService:
                 'timestamp': datetime.utcnow().isoformat()
             }
             
-            logger.info(f"✅ Dados obtidos: Temp={weather_data['temperature']}°C, "
-                       f"Umidade={weather_data['humidity']}%, "
-                       f"Vento={weather_data['wind_speed']}km/h, "
-                       f"Condição={weather_data['condition']}")
+            logger.info(
+                f"✅ Dados obtidos: Temp={weather_data['temperature']}°C, "
+                f"Umidade={weather_data['humidity']}%, "
+                f"Vento={weather_data['wind_speed']}km/h, "
+                f"Condição={weather_data['condition']}"
+            )
             
             return weather_data
             
@@ -64,34 +64,34 @@ class WeatherService:
     
     def _map_weather_code(self, code: int) -> str:
         """
-        Mapeia códigos WMO Weather para descrições em texto
+        Mapeia códigos WMO Weather para descrições em texto (PT-BR)
         Fonte: https://open-meteo.com/en/docs
         """
         weather_codes = {
-            0: 'Clear',
-            1: 'Mainly Clear',
-            2: 'Partly Cloudy',
-            3: 'Overcast',
-            45: 'Foggy',
-            48: 'Depositing Rime Fog',
-            51: 'Light Drizzle',
-            53: 'Moderate Drizzle',
-            55: 'Dense Drizzle',
-            61: 'Slight Rain',
-            63: 'Moderate Rain',
-            65: 'Heavy Rain',
-            71: 'Slight Snow',
-            73: 'Moderate Snow',
-            75: 'Heavy Snow',
-            77: 'Snow Grains',
-            80: 'Slight Rain Showers',
-            81: 'Moderate Rain Showers',
-            82: 'Violent Rain Showers',
-            85: 'Slight Snow Showers',
-            86: 'Heavy Snow Showers',
-            95: 'Thunderstorm',
-            96: 'Thunderstorm with Slight Hail',
-            99: 'Thunderstorm with Heavy Hail'
+            0: 'Céu limpo',
+            1: 'Predominantemente limpo',
+            2: 'Parcialmente nublado',
+            3: 'Encoberto',
+            45: 'Neblina',
+            48: 'Neblina com gelo',
+            51: 'Garoa leve',
+            53: 'Garoa moderada',
+            55: 'Garoa intensa',
+            61: 'Chuva fraca',
+            63: 'Chuva moderada',
+            65: 'Chuva forte',
+            71: 'Neve fraca',
+            73: 'Neve moderada',
+            75: 'Neve forte',
+            77: 'Grãos de neve',
+            80: 'Pancadas de chuva leves',
+            81: 'Pancadas de chuva moderadas',
+            82: 'Pancadas de chuva fortes',
+            85: 'Pancadas de neve leves',
+            86: 'Pancadas de neve fortes',
+            95: 'Tempestade',
+            96: 'Tempestade com granizo leve',
+            99: 'Tempestade com granizo forte'
         }
         
-        return weather_codes.get(code, 'Unknown')
+        return weather_codes.get(code, 'Desconhecido')
