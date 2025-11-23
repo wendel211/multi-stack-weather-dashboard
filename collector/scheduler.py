@@ -1,20 +1,38 @@
 import schedule
 import time
+import os
 from weather_service import WeatherService
 from queue_service import QueueService
 
 def start_scheduler():
+    print("🔧 Iniciando coletor...")
+
     weather = WeatherService()
-    queue = QueueService()
+
+    # Aguarda RabbitMQ subir
+    queue = None
+    while queue is None:
+        try:
+            queue = QueueService()
+            print("🐇 Conectado ao RabbitMQ!")
+        except Exception as e:
+            print("⏳ Aguardando RabbitMQ:", e)
+            time.sleep(3)
+
+    # Lê o intervalo corretamente
+    interval = int(os.getenv("COLLECTOR_INTERVAL", 60))
 
     def job():
-        data = weather.fetch_weather()
-        queue.send(data)
+        try:
+            data = weather.fetch_weather()
+            print("📤 Dados coletados:", data)
+            queue.send(data)
+        except Exception as e:
+            print("❌ Erro no job do coletor:", e)
 
-    # coleta a cada 1 hora
-    schedule.every(60).minutes.do(job)
+    schedule.every(interval).seconds.do(job)
 
-    print("⏳ Coletor iniciado. Aguardando primeiro ciclo...")
+    print(f"⏳ Coletor ativo — executando a cada {interval} segundos.")
 
     while True:
         schedule.run_pending()
