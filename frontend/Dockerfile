@@ -1,8 +1,10 @@
+# --------------------
+# Stage 1 — Build Vite
+# --------------------
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# ARG usado pelo Vite durante o build
 ARG VITE_API_URL
 ENV VITE_API_URL=${VITE_API_URL}
 
@@ -11,8 +13,7 @@ RUN npm install
 
 COPY . .
 
-# Debug opcional para confirmar URL no build
-RUN echo "Building with VITE_API_URL=${VITE_API_URL}"
+RUN echo "➡️ Building with VITE_API_URL=${VITE_API_URL}"
 
 RUN npm run build
 

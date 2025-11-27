@@ -43,8 +43,6 @@ services:
     restart: always
     ports:
       - "3001:80"
-    environment:
-      VITE_API_URL: ${VITE_API_URL}
     networks:
       - weather_net
 
