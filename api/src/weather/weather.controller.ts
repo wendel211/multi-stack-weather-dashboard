@@ -5,7 +5,6 @@ import {
   Body,
   Query,
   Res,
-  Header,
   UseGuards
 } from '@nestjs/common';
 
@@ -22,7 +21,7 @@ export class WeatherController {
 
   /** 
    * Endpoint usado exclusivamente pelo worker Go
-   * Não tem JWT 
+   * ❗ Não tem JWT
    */
   @Post('logs')
   create(@Body() dto: CreateWeatherDto) {
@@ -30,7 +29,7 @@ export class WeatherController {
   }
 
   /**
-   * Endpoint consumido pelo frontend (autenticado)
+   * Listagem consumida pelo frontend (PROTEGIDA)
    */
   @UseGuards(JwtAuthGuard)
   @Get('logs')
@@ -39,18 +38,24 @@ export class WeatherController {
   }
 
   /**
-   * Export CSV
+   * 📌 Export CSV 
    */
   @UseGuards(JwtAuthGuard)
   @Get('export.csv')
-  @Header('Content-Type', 'text/csv')
-  @Header('Content-Disposition', 'attachment; filename=weather.csv')
-  async exportCSV() {
-    return this.weatherService.exportCSV();
+  async exportCSV(@Res() res: Response) {
+    const csv = await this.weatherService.exportCSV();
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="weather.csv"'
+    );
+
+    return res.send(csv);
   }
 
   /**
-   * Export XLSX
+   * 📌 Export XLSX
    */
   @UseGuards(JwtAuthGuard)
   @Get('export.xlsx')
@@ -60,14 +65,14 @@ export class WeatherController {
     res.set({
       'Content-Type':
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Content-Disposition': 'attachment; filename=weather.xlsx',
+      'Content-Disposition': 'attachment; filename="weather.xlsx"',
     });
 
-    res.send(buffer);
+    return res.send(buffer);
   }
 
   /**
-   * 🚀 Novo: Gerar Insights via IA
+   * 🚀 Insights via IA-Service
    */
   @UseGuards(JwtAuthGuard)
   @Get('insights')
