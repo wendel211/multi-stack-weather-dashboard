@@ -40,7 +40,6 @@ export class WeatherController {
   /**
    * 🤖 Listagem para o AI Service (SEM AUTENTICAÇÃO)
    * Usado apenas internamente pelo Docker network
-   * Não exposto publicamente
    */
   @Get('logs/internal')
   findAllInternal(@Query() query: QueryWeatherDto) {
@@ -82,11 +81,22 @@ export class WeatherController {
   }
 
   /**
-   * 🚀 Insights via IA-Service
+   * 🚀 Insights via IA-Service (COM CACHE)
+   * Retorna do cache se disponível (30 min)
    */
   @UseGuards(JwtAuthGuard)
   @Get('insights')
   async generateInsights() {
     return this.weatherService.generateInsights();
+  }
+
+  /**
+   * 🔄 Forçar regeneração de insights (IGNORA CACHE)
+   * Use para botão "Atualizar Insights" no frontend
+   */
+  @UseGuards(JwtAuthGuard)
+  @Post('insights/refresh')
+  async refreshInsights() {
+    return this.weatherService.regenerateInsights();
   }
 }

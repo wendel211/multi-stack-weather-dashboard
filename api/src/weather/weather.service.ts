@@ -10,8 +10,19 @@ import axios from 'axios';
 import { Parser } from 'json2csv';
 import * as ExcelJS from 'exceljs';
 
+// 🔥 CACHE DE INSIGHTS
+interface CachedInsights {
+  data: any;
+  timestamp: number;
+}
+
 @Injectable()
 export class WeatherService {
+  // Cache em memória
+  private insightsCache: CachedInsights | null = null;
+  // Tempo de cache em milissegundos (30 minutos)
+  private readonly CACHE_TTL = 30 * 60 * 1000;
+
   constructor(
     @InjectModel(WeatherLog.name)
     private weatherModel: Model<WeatherLogDocument>,
@@ -21,6 +32,10 @@ export class WeatherService {
   // CRUD & LISTAGEM NORMAL
   // ---------------------------
   async create(dto: CreateWeatherDto) {
+    // 🔥 Invalida cache quando novos dados chegam
+    this.insightsCache = null;
+    console.log('🗑️ Cache de insights invalidado (novo dado inserido)');
+    
     return this.weatherModel.create(dto);
   }
 
@@ -67,9 +82,30 @@ export class WeatherService {
   }
 
   // ---------------------------
-  // 🚀 INTEGRAÇÃO COM IA-SERVICE (CORRIGIDO)
+  // 🚀 INTEGRAÇÃO COM IA-SERVICE (COM CACHE)
   // ---------------------------
   async generateInsights() {
+ 
+    if (this.insightsCache) {
+      const now = Date.now();
+      const age = now - this.insightsCache.timestamp;
+      const ageMinutes = Math.floor(age / 60000);
+
+      if (age < this.CACHE_TTL) {
+        console.log(
+          `♻️ Retornando insights do cache (${ageMinutes} min atrás)`,
+        );
+        return {
+          ...this.insightsCache.data,
+          cached: true,
+          cache_age_minutes: ageMinutes,
+        };
+      } else {
+        console.log('🗑️ Cache expirado, gerando novos insights...');
+        this.insightsCache = null;
+      }
+    }
+
     try {
       const AI_URL = process.env.AI_URL ?? 'http://ai-service:8001';
 
@@ -77,12 +113,11 @@ export class WeatherService {
       console.log(`📡 URL: ${AI_URL}/generate-insights`);
 
       // ✅ CHAMA O ENDPOINT CORRETO
-      // O AI Service vai buscar os dados diretamente da API
       const response = await axios.post(
         `${AI_URL}/generate-insights`,
-        {}, // Corpo vazio - o AI Service busca os dados
+        {},
         {
-          timeout: 30000, // 30 segundos
+          timeout: 30000,
           headers: {
             'Content-Type': 'application/json',
           },
@@ -91,10 +126,21 @@ export class WeatherService {
 
       console.log('✅ Insights recebidos com sucesso!');
 
-      return {
+      const result = {
         success: true,
+        cached: false,
         ...response.data,
       };
+
+      // 🔥 SALVAR NO CACHE
+      this.insightsCache = {
+        data: result,
+        timestamp: Date.now(),
+      };
+
+      console.log('💾 Insights salvos no cache (30 min)');
+
+      return result;
     } catch (error: any) {
       console.error('❌ Erro ao chamar IA-Service:', error.message);
 
@@ -103,9 +149,18 @@ export class WeatherService {
       }
 
       // ✅ FALLBACK INTELIGENTE
-      // Se a IA falhar, gera insights baseados em regras
       return this.generateFallbackInsights();
     }
+  }
+
+  /**
+   * 🔄 Forçar regeneração de insights (ignora cache)
+   * Útil para adicionar um botão "Atualizar Insights" no frontend
+   */
+  async regenerateInsights() {
+    console.log('🔄 Regeneração forçada - ignorando cache');
+    this.insightsCache = null;
+    return this.generateInsights();
   }
 
   /**
@@ -158,7 +213,6 @@ export class WeatherService {
       const tendencias: string[] = [];
       const alertas: string[] = [];
 
-      // Tendências
       tendencias.push(
         `Temperatura ${trend} (${firstTemp.toFixed(1)}°C → ${lastTemp.toFixed(1)}°C)`,
       );
@@ -175,7 +229,6 @@ export class WeatherService {
         tendencias.push('Ar seco persistente');
       }
 
-      // Alertas
       if (maxTemp > 35) {
         alertas.push('⚠️ Calor extremo - evite exposição prolongada ao sol');
       }

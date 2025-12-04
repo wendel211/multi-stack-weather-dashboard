@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api/axios";
 import { Loading } from "../components/ui/loading";
 import { useToast } from "../components/ui/toast";
+import { RefreshCw } from "lucide-react";
 
 import {
   Card,
@@ -27,6 +28,7 @@ export default function Dashboard() {
   const [filteredLogs, setFilteredLogs] = useState<any[]>([]);
   const [insights, setInsights] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshingInsights, setRefreshingInsights] = useState(false);
 
   const { showToast } = useToast();
 
@@ -56,6 +58,22 @@ export default function Dashboard() {
 
     load();
   }, []);
+
+  // 🔄 FUNÇÃO PARA ATUALIZAR INSIGHTS
+  async function refreshInsights() {
+    try {
+      setRefreshingInsights(true);
+      
+      const response = await api.post("/weather/insights/refresh");
+      
+      setInsights(response.data);
+      showToast("Insights atualizados com sucesso!", "success");
+    } catch (err) {
+      showToast("Erro ao atualizar insights", "error");
+    } finally {
+      setRefreshingInsights(false);
+    }
+  }
 
   function applyFilters() {
     let list = [...logs];
@@ -321,10 +339,36 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
+      {/* 🤖 CARD DE INSIGHTS COM BOTÃO DE REFRESH */}
       {insights && (
         <Card className="border-blue-300 bg-blue-50 dark:bg-blue-950 dark:border-blue-900">
-          <CardHeader>
-            <CardTitle className="text-xl">🔍 Insights Inteligentes</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-xl">
+              🔍 Insights Inteligentes
+              {insights.cached && (
+                <span className="ml-3 text-sm font-normal text-gray-600 dark:text-gray-400">
+                  ♻️ Cache ({insights.cache_age_minutes || 0} min)
+                </span>
+              )}
+              {insights.fallback && (
+                <span className="ml-3 text-sm font-normal text-amber-600 dark:text-amber-400">
+                  ⚙️ Modo Fallback
+                </span>
+              )}
+            </CardTitle>
+            
+            <Button
+              onClick={refreshInsights}
+              disabled={refreshingInsights}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <RefreshCw 
+                size={16} 
+                className={refreshingInsights ? "animate-spin" : ""}
+              />
+              {refreshingInsights ? "Atualizando..." : "Atualizar"}
+            </Button>
           </CardHeader>
 
           <CardContent className="space-y-4 text-gray-700 dark:text-gray-300">
