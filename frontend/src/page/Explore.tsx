@@ -1,27 +1,48 @@
 import { useEffect, useState } from "react";
 import { Button } from "../components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
-import { Search, RotateCcw, X } from "lucide-react"; // Adicionei ícones para melhorar a UX
+import { 
+  Search, 
+  X, 
+  Flame, 
+  Droplets, 
+  Leaf, 
+  Zap, 
+  Mountain, 
+  Skull, 
+  Snowflake, 
+  Wind, 
+  Bug, 
+  Ghost, 
+  Disc, 
+  Hexagon, 
+  Moon, 
+  Star, 
+  Dumbbell, 
+  Shield, 
+  Eye,
+  Menu
+} from "lucide-react";
 
-const TYPE_COLORS: Record<string, string> = {
-  fire: "bg-red-500",
-  water: "bg-blue-500",
-  grass: "bg-green-500",
-  electric: "bg-yellow-400 text-yellow-950", // Texto escuro para contraste no amarelo
-  rock: "bg-yellow-800",
-  ground: "bg-amber-700",
-  psychic: "bg-pink-500",
-  dark: "bg-slate-800",
-  fairy: "bg-pink-300 text-pink-950",
-  fighting: "bg-orange-700",
-  steel: "bg-slate-400 text-slate-900",
-  ice: "bg-cyan-400 text-cyan-950",
-  bug: "bg-lime-600",
-  ghost: "bg-purple-700",
-  dragon: "bg-indigo-700",
-  poison: "bg-purple-500",
-  flying: "bg-sky-500",
-  normal: "bg-slate-400 text-slate-900",
+// --- CONFIGURAÇÃO DE CORES E ÍCONES ---
+const TYPE_CONFIG: Record<string, { color: string; bg: string; icon: any; light: string }> = {
+  fire:     { color: "text-red-500", bg: "bg-red-500", light: "bg-red-100 dark:bg-red-900/30", icon: Flame },
+  water:    { color: "text-blue-500", bg: "bg-blue-500", light: "bg-blue-100 dark:bg-blue-900/30", icon: Droplets },
+  grass:    { color: "text-green-500", bg: "bg-green-500", light: "bg-green-100 dark:bg-green-900/30", icon: Leaf },
+  electric: { color: "text-yellow-500", bg: "bg-yellow-500", light: "bg-yellow-100 dark:bg-yellow-900/30", icon: Zap },
+  rock:     { color: "text-stone-600", bg: "bg-stone-600", light: "bg-stone-100 dark:bg-stone-900/30", icon: Mountain },
+  ground:   { color: "text-amber-600", bg: "bg-amber-600", light: "bg-amber-100 dark:bg-amber-900/30", icon: Mountain },
+  psychic:  { color: "text-pink-500", bg: "bg-pink-500", light: "bg-pink-100 dark:bg-pink-900/30", icon: Eye },
+  dark:     { color: "text-slate-700", bg: "bg-slate-700", light: "bg-slate-200 dark:bg-slate-800", icon: Moon },
+  fairy:    { color: "text-pink-400", bg: "bg-pink-400", light: "bg-pink-100 dark:bg-pink-900/20", icon: Star },
+  fighting: { color: "text-orange-700", bg: "bg-orange-700", light: "bg-orange-100 dark:bg-orange-900/30", icon: Dumbbell },
+  steel:    { color: "text-slate-400", bg: "bg-slate-400", light: "bg-slate-100 dark:bg-slate-800", icon: Shield },
+  ice:      { color: "text-cyan-400", bg: "bg-cyan-400", light: "bg-cyan-100 dark:bg-cyan-900/30", icon: Snowflake },
+  bug:      { color: "text-lime-600", bg: "bg-lime-600", light: "bg-lime-100 dark:bg-lime-900/30", icon: Bug },
+  ghost:    { color: "text-purple-600", bg: "bg-purple-600", light: "bg-purple-100 dark:bg-purple-900/30", icon: Ghost },
+  dragon:   { color: "text-indigo-600", bg: "bg-indigo-600", light: "bg-indigo-100 dark:bg-indigo-900/30", icon: Wind },
+  poison:   { color: "text-purple-500", bg: "bg-purple-500", light: "bg-purple-100 dark:bg-purple-900/30", icon: Skull },
+  flying:   { color: "text-sky-500", bg: "bg-sky-500", light: "bg-sky-100 dark:bg-sky-900/30", icon: Wind },
+  normal:   { color: "text-slate-400", bg: "bg-slate-400", light: "bg-slate-100 dark:bg-slate-800", icon: Disc },
 };
 
 export default function Explore() {
@@ -29,258 +50,289 @@ export default function Explore() {
   const [originalList, setOriginalList] = useState<any[]>([]);
   const [selected, setSelected] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-
-  // filtros
+  
+  // Estados de filtro
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState("all");
-
-  async function load() {
-    setLoading(true);
-
-    const res = await fetch("https://pokeapi.co/api/v2/pokemon?limit=151");
-    const data = await res.json();
-
-    const detailed = await Promise.all(
-      data.results.map(async (p: any) => {
-        const resp = await fetch(p.url);
-        return resp.json();
-      })
-    );
-
-    setPokemons(detailed);
-    setOriginalList(detailed);
-    setLoading(false);
-  }
+  const [activeType, setActiveType] = useState("all");
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
+    async function load() {
+      setLoading(true);
+      try {
+        const res = await fetch("https://pokeapi.co/api/v2/pokemon?limit=151");
+        const data = await res.json();
+        
+        const detailed = await Promise.all(
+          data.results.map(async (p: any) => {
+            const resp = await fetch(p.url);
+            return resp.json();
+          })
+        );
+        
+        setPokemons(detailed);
+        setOriginalList(detailed);
+      } catch (error) {
+        console.error("Erro ao carregar pokémons", error);
+      } finally {
+        setLoading(false);
+      }
+    }
     load();
   }, []);
 
-  // FILTRO DE BUSCA
   useEffect(() => {
     let list = [...originalList];
 
     if (search) {
-      list = list.filter((p) =>
-        p.name.toLowerCase().includes(search.toLowerCase())
-      );
+      list = list.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
     }
 
-    if (typeFilter !== "all") {
-      list = list.filter((p) =>
-        p.types.some((t: any) => t.type.name === typeFilter)
-      );
+    if (activeType !== "all") {
+      list = list.filter((p) => p.types.some((t: any) => t.type.name === activeType));
     }
 
     setPokemons(list);
-  }, [search, typeFilter]);
+  }, [search, activeType, originalList]);
 
-  if (loading)
-    return (
-      <div className="space-y-6">
-        <div className="h-8 w-48 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
-        <div className="h-24 w-full animate-pulse rounded-lg bg-slate-200 dark:bg-slate-800" />
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-64 rounded-xl bg-slate-200 animate-pulse dark:bg-slate-800"
-            />
-          ))}
-        </div>
-      </div>
-    );
-
-  const types = [
-    "all",
-    "fire",
-    "water",
-    "grass",
-    "electric",
-    "rock",
-    "ground",
-    "psychic",
-    "dark",
-    "fairy",
-    "fighting",
-    "steel",
-    "ice",
-    "bug",
-    "ghost",
-    "dragon",
-    "poison",
-    "flying",
-    "normal",
-  ];
+  const typesList = ["all", ...Object.keys(TYPE_CONFIG)];
 
   return (
-    <div className="space-y-6 pb-10">
-      <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-        Explorar Pokémons
-      </h1>
-
-      {/* FILTROS */}
-      <Card className="dark:bg-slate-900 dark:border-slate-800">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base text-slate-800 dark:text-slate-200">
-            Filtros de Pesquisa
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500 dark:text-slate-400" />
-              <input
-                type="text"
-                placeholder="Buscar Pokémon..."
-                className="w-full rounded border border-slate-200 bg-white py-2 pl-9 pr-4 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:placeholder-slate-400"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="w-full rounded border border-slate-200 bg-white p-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-            >
-              {types.map((t) => (
-                <option key={t} value={t}>
-                  {t === "all" ? "Todos os tipos" : t.toUpperCase()}
-                </option>
-              ))}
-            </select>
-
-            <Button 
-              onClick={load} 
-              variant="outline"
-              className="w-full dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800"
-            >
-              <RotateCcw className="mr-2 h-4 w-4" />
-              Recarregar
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* GRID */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-        {pokemons.map((p) => {
-          const type = p.types[0].type.name;
-          // Fallback seguro para cor
-          const colorClass = TYPE_COLORS[type] || "bg-slate-500";
-
-          return (
-            <Card
-              key={p.id}
-              className="group cursor-pointer overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:bg-slate-900 dark:border-slate-800"
-              onClick={() => setSelected(p)}
-            >
-              <CardHeader
-                className={`${colorClass} relative flex h-24 items-center justify-center p-0`}
-              >
-                <span className="absolute right-2 top-2 text-xs font-bold text-white/50">
-                  #{String(p.id).padStart(3, "0")}
-                </span>
-                <CardTitle className="capitalize text-white text-xl drop-shadow-md">
-                  {p.name}
-                </CardTitle>
-              </CardHeader>
-
-              <CardContent className="flex flex-col items-center pb-6 pt-0">
-                <div className="-mt-12 mb-3 rounded-full bg-white/20 p-2 backdrop-blur-sm dark:bg-slate-900/20">
-                    <img
-                    src={p.sprites.other["official-artwork"].front_default}
-                    alt={p.name}
-                    className="h-28 w-28 drop-shadow-xl transition-transform duration-300 group-hover:scale-110"
-                    loading="lazy"
-                    />
-                </div>
-
-                <div className="flex flex-wrap justify-center gap-2">
-                  {p.types.map((t: any) => (
-                    <span
-                      key={t.type.name}
-                      className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 uppercase tracking-wide dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                    >
-                      {t.type.name}
-                    </span>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+    <div className="flex flex-col lg:flex-row gap-6 relative">
+      
+      {/* 📱 HEADER MOBILE */}
+      <div className="lg:hidden flex justify-between items-center mb-4 sticky top-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md z-30 py-4">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Pokedex</h1>
+        <Button variant="outline" className="h-10 w-10 p-0" onClick={() => setSidebarOpen(!isSidebarOpen)}>
+            <Menu />
+        </Button>
       </div>
 
-      {/* MODAL */}
+      {/* 🎨 SIDEBAR DE FILTROS COMPACTA */}
+      <aside className={`
+        fixed inset-y-0 left-0 z-40 w-64 transform bg-white p-4 shadow-2xl transition-transform duration-300 ease-in-out dark:bg-slate-900 
+        lg:sticky lg:top-4 lg:block lg:w-60 lg:transform-none lg:bg-transparent lg:shadow-none lg:p-0 lg:h-fit
+        ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
+      `}>
+        <div className="flex flex-col h-full lg:h-auto">
+          <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 hidden lg:block">
+            Tipos
+          </h2>
+          
+          <div className="grid grid-cols-2 gap-2 content-start">
+            {typesList.map((type) => {
+              const config = TYPE_CONFIG[type] || { icon: Hexagon, color: "text-slate-500", bg: "bg-slate-500" };
+              const Icon = type === "all" ? Hexagon : config.icon;
+              const isActive = activeType === type;
+
+              return (
+                <button
+                  key={type}
+                  onClick={() => {
+                    setActiveType(type);
+                    setSidebarOpen(false);
+                  }}
+                  className={`
+                    group flex flex-col items-center justify-center gap-1 rounded-xl p-2 text-xs font-semibold transition-all border
+                    ${isActive 
+                      ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20" 
+                      : "bg-white border-slate-100 text-slate-500 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+                    }
+                  `}
+                >
+                  <Icon size={16} className={isActive ? "text-white" : config.color} />
+                  <span className="capitalize text-[10px]">{type === 'all' ? 'Todos' : type}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </aside>
+
+      {/* 🎲 ÁREA PRINCIPAL */}
+      <main className="flex-1 flex flex-col">
+        
+        {/* BARRA DE PESQUISA */}
+        <div className="mb-6 relative">
+            <Search className="absolute left-4 top-3.5 h-5 w-5 text-slate-400" />
+            <input 
+                type="text" 
+                placeholder="Buscar Pokémon..." 
+                className="w-full h-12 pl-12 pr-4 rounded-2xl border-none bg-white shadow-sm text-slate-600 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 dark:bg-slate-900 dark:text-slate-200"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+            />
+        </div>
+        
+        {/* GRID DE CARDS - Sem scroll interno, usa o scroll da página */}
+        <div className="pb-20">
+          {loading ? (
+             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {Array.from({ length: 12 }).map((_, i) => (
+                    <div key={i} className="h-64 rounded-3xl bg-slate-200 animate-pulse dark:bg-slate-800" />
+                ))}
+             </div>
+          ) : (
+            <>
+              <div className="flex justify-between items-center mb-4 px-2">
+                 <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                    {pokemons.length} encontrados
+                 </span>
+                 {activeType !== 'all' && (
+                     <span className="text-xs font-bold uppercase text-blue-500 bg-blue-50 px-2 py-1 rounded-md dark:bg-blue-900/30">
+                        Filtro: {activeType}
+                     </span>
+                 )}
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                {pokemons.map((p) => {
+                  const type = p.types[0].type.name;
+                  const config = TYPE_CONFIG[type] || TYPE_CONFIG.normal;
+                  const TypeIcon = config.icon;
+
+                  return (
+                    <div
+                      key={p.id}
+                      onClick={() => setSelected(p)}
+                      className="group relative cursor-pointer overflow-hidden rounded-[2rem] bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl dark:bg-slate-900"
+                    >
+                      {/* Círculo de Fundo Colorido */}
+                      <div className={`absolute -top-8 -left-8 h-36 w-36 rounded-full opacity-10 transition-transform group-hover:scale-110 ${config.bg}`} />
+                      
+                      <div className="relative z-10 flex flex-col items-center">
+                        <div className="mt-2 mb-2 h-28 w-28 transition-transform duration-300 group-hover:scale-110">
+                             <img 
+                                src={p.sprites.other["official-artwork"].front_default} 
+                                alt={p.name}
+                                className="h-full w-full object-contain drop-shadow-lg"
+                                loading="lazy"
+                             />
+                        </div>
+
+                        <div className="flex w-full flex-col items-center mt-1">
+                           <span className="text-[10px] font-bold text-slate-400 tracking-widest">
+                             #{String(p.id).padStart(3, "0")}
+                           </span>
+                           <h3 className="text-base font-bold capitalize text-slate-800 dark:text-slate-100">
+                             {p.name}
+                           </h3>
+                           
+                           <div className={`mt-2 flex items-center gap-1.5 rounded-full px-2.5 py-0.5 ${config.light}`}>
+                              <TypeIcon size={10} className={config.color} />
+                              <span className={`text-[10px] font-bold uppercase ${config.color}`}>
+                                {type}
+                              </span>
+                           </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+      </main>
+
+      {/* 🖼️ MODAL DETALHADO */}
       {selected && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200"
-          onClick={() => setSelected(null)}
+        <div 
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setSelected(null)}
         >
-          <div
-            className="relative w-full max-w-md overflow-hidden rounded-xl bg-white shadow-2xl dark:bg-slate-900 dark:border dark:border-slate-800 animate-in zoom-in-95 duration-200"
+          <div 
+            className="relative w-full max-w-4xl overflow-hidden rounded-3xl bg-white shadow-2xl dark:bg-slate-950 animate-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header do Modal com a cor do tipo */}
-            <div className={`${TYPE_COLORS[selected.types[0].type.name]} p-6 text-center relative`}>
-                <button 
-                    onClick={() => setSelected(null)}
-                    className="absolute top-4 right-4 rounded-full bg-white/20 p-1 text-white hover:bg-white/40 transition-colors"
-                >
-                    <X size={20} />
-                </button>
-                
-                <h2 className="text-3xl font-bold capitalize text-white drop-shadow-md">
-                    {selected.name}
-                </h2>
-                <div className="absolute -bottom-10 left-1/2 -translate-x-1/2">
-                    <img
-                        src={selected.sprites.other["official-artwork"].front_default}
-                        className="h-40 w-40 drop-shadow-2xl"
+            <div className="grid md:grid-cols-2">
+                <div className={`${TYPE_CONFIG[selected.types[0].type.name]?.bg || 'bg-slate-500'} relative flex flex-col items-center justify-center p-8 text-white min-h-[250px]`}>
+                    <button 
+                        onClick={() => setSelected(null)}
+                        className="absolute top-4 left-4 rounded-full bg-black/10 p-2 text-white hover:bg-black/20 transition-colors md:hidden"
+                    >
+                        <X size={20} />
+                    </button>
+
+                    <h2 className="absolute top-8 text-[100px] font-bold text-white/10 select-none overflow-hidden whitespace-nowrap">
+                        {selected.name}
+                    </h2>
+                    
+                    <img 
+                        src={selected.sprites.other["official-artwork"].front_default} 
+                        className="relative z-10 h-56 w-56 drop-shadow-2xl md:h-72 md:w-72 transition-transform hover:scale-105 duration-500"
                     />
-                </div>
-            </div>
-
-            <div className="mt-12 px-6 pb-6 pt-2">
-              <div className="grid grid-cols-2 gap-4 text-center">
-                 <div className="rounded-lg bg-slate-50 p-3 dark:bg-slate-800">
-                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Altura</p>
-                    <p className="font-semibold text-slate-900 dark:text-slate-100">{selected.height / 10} m</p>
-                 </div>
-                 <div className="rounded-lg bg-slate-50 p-3 dark:bg-slate-800">
-                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Peso</p>
-                    <p className="font-semibold text-slate-900 dark:text-slate-100">{selected.weight / 10} kg</p>
-                 </div>
-              </div>
-
-              <div className="mt-4 space-y-3">
-                 <div>
-                    <p className="mb-2 text-xs font-medium uppercase text-slate-500 dark:text-slate-400">Tipos</p>
-                    <div className="flex gap-2">
+                    
+                    <div className="relative z-10 mt-6 flex gap-2">
                         {selected.types.map((t: any) => (
-                            <span key={t.type.name} className="px-3 py-1 rounded-md text-xs font-bold uppercase bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border dark:border-slate-700">
+                             <span key={t.type.name} className="rounded-full bg-white/20 px-4 py-1 text-sm font-bold capitalize backdrop-blur-sm border border-white/10 shadow-sm">
                                 {t.type.name}
-                            </span>
+                             </span>
                         ))}
                     </div>
-                 </div>
-                 
-                 <div>
-                    <p className="mb-2 text-xs font-medium uppercase text-slate-500 dark:text-slate-400">Base XP</p>
-                    <div className="w-full bg-slate-200 rounded-full h-2.5 dark:bg-slate-700">
-                        <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${Math.min((selected.base_experience / 300) * 100, 100)}%` }}></div>
-                    </div>
-                    <p className="mt-1 text-xs text-right text-slate-500 dark:text-slate-400">{selected.base_experience} XP</p>
-                 </div>
-              </div>
+                </div>
 
-              <div className="mt-6">
-                <Button variant="outline" className="w-full dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" onClick={() => setSelected(null)}>
-                  Fechar Detalhes
-                </Button>
-              </div>
+                <div className="p-6 md:p-8 bg-white dark:bg-slate-900 max-h-[60vh] md:max-h-[85vh] overflow-y-auto">
+                    <div className="flex justify-between items-start mb-6">
+                        <div>
+                            <span className="text-xl font-bold text-slate-300">#{String(selected.id).padStart(3, "0")}</span>
+                            <h2 className="text-3xl font-bold capitalize text-slate-900 dark:text-white leading-tight">
+                                {selected.name}
+                            </h2>
+                        </div>
+                        <Button 
+                            variant="outline"
+                            onClick={() => setSelected(null)}
+                            className="hidden h-9 w-9 items-center justify-center border-0 p-0 md:flex rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                        >
+                            <X size={20} />
+                        </Button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 mb-6">
+                        <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50 text-center">
+                            <p className="text-xs font-bold uppercase text-slate-400 mb-1">Altura</p>
+                            <p className="text-lg font-bold text-slate-900 dark:text-slate-100">{selected.height / 10}m</p>
+                        </div>
+                        <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50 text-center">
+                            <p className="text-xs font-bold uppercase text-slate-400 mb-1">Peso</p>
+                            <p className="text-lg font-bold text-slate-900 dark:text-slate-100">{selected.weight / 10}kg</p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Estatísticas</h3>
+                        
+                        {selected.stats.map((stat: any) => {
+                            const value = stat.base_stat;
+                            const percentage = Math.min((value / 150) * 100, 100);
+                            let color = "bg-slate-500";
+                            
+                            if (stat.stat.name === 'hp') color = "bg-red-500";
+                            if (stat.stat.name === 'attack') color = "bg-orange-500";
+                            if (stat.stat.name === 'defense') color = "bg-yellow-500";
+                            if (stat.stat.name === 'speed') color = "bg-blue-500";
+                            if (stat.stat.name.includes('special')) color = "bg-purple-500";
+
+                            return (
+                                <div key={stat.stat.name} className="flex items-center gap-3">
+                                    <span className="w-16 text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">
+                                        {stat.stat.name.replace('special-', 'Sp. ')}
+                                    </span>
+                                    <div className="flex-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                                        <div 
+                                            className={`h-full rounded-full ${color}`} 
+                                            style={{ width: `${percentage}%` }}
+                                        />
+                                    </div>
+                                    <span className="w-8 text-right text-xs font-bold text-slate-700 dark:text-slate-300">
+                                        {value}
+                                    </span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
             </div>
           </div>
         </div>
