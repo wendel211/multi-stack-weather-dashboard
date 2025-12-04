@@ -108,9 +108,56 @@ export default function Dashboard() {
     showToast("Filtros limpos.", "success");
   }
 
-  // Funções de Download (Mantidas a lógica original)
-  async function downloadCSV() { /* ... sua lógica original ... */ }
-  async function downloadXLSX() { /* ... sua lógica original ... */ }
+  async function downloadCSV() {
+    try {
+      const response = await api.get("/weather/export.csv", {
+        responseType: "blob",
+        headers: {
+          Accept: "text/csv",
+        },
+      });
+
+      const blob = new Blob([response.data], { type: "text/csv" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "weather.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      showToast("CSV exportado com sucesso!", "success");
+    } catch (err) {
+      showToast("Erro ao exportar CSV", "error");
+    }
+  }
+
+  async function downloadXLSX() {
+    try {
+      const response = await api.get("/weather/export.xlsx", {
+        responseType: "blob",
+        headers: {
+          Accept: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        },
+      });
+
+      const blob = new Blob([response.data], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "weather.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      showToast("XLSX exportado com sucesso!", "success");
+    } catch (err) {
+      showToast("Erro ao exportar XLSX", "error");
+    }
+  }
 
   if (loading) return <Loading />;
 
@@ -123,7 +170,6 @@ export default function Dashboard() {
           Dashboard Climático
         </h1>
         <div className="flex gap-2">
-            {/* CORREÇÃO: Removido size="sm", adicionado h-8 e text-xs via className */}
             <Button variant="outline" className="h-8 px-3 text-xs" onClick={downloadCSV}>CSV</Button>
             <Button variant="outline" className="h-8 px-3 text-xs" onClick={downloadXLSX}>XLSX</Button>
         </div>
@@ -149,7 +195,6 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* CORREÇÃO: Trocado variant="ghost" por "outline" + border-0 */}
               <Button
                 onClick={refreshInsights}
                 disabled={refreshingInsights}
@@ -325,7 +370,6 @@ export default function Dashboard() {
             </div>
 
             <div className="flex items-end gap-2">
-               {/* CORREÇÃO: Botões de filtro manuais */}
                <Button onClick={applyFilters} className="flex-1 h-8 px-3 text-xs">Aplicar</Button>
                <Button variant="outline" onClick={resetFilters} className="h-8 px-3 text-xs">Limpar</Button>
             </div>

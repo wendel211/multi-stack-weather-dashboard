@@ -17,3 +17,6 @@ export function TableCell({ children }: any) {
 export function TableHead({ children }: any) {
   return <th className="p-2 text-left font-medium">{children}</th>;
 }
+export function TableBody({ children }: any) {
+  return <tbody>{children}</tbody>;
+}
