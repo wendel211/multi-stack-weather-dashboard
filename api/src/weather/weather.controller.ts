@@ -38,6 +38,16 @@ export class WeatherController {
   }
 
   /**
+   * 🤖 Listagem para o AI Service (SEM AUTENTICAÇÃO)
+   * Usado apenas internamente pelo Docker network
+   * Não exposto publicamente
+   */
+  @Get('logs/internal')
+  findAllInternal(@Query() query: QueryWeatherDto) {
+    return this.weatherService.findAll(query);
+  }
+
+  /**
    * 📌 Export CSV 
    */
   @UseGuards(JwtAuthGuard)
