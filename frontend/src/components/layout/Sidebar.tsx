@@ -9,12 +9,14 @@ export function Sidebar() {
   ];
 
   return (
-    <aside className="w-56 h-full border-r bg-white dark:bg-gray-900 dark:border-gray-700 shadow-sm">
-      <div className="p-4 font-bold text-lg dark:text-gray-100">
+    <aside className="w-60 h-screen bg-[#229CFF] text-white flex flex-col shadow-xl">
+      {/* HEADER */}
+      <div className="p-6 text-2xl font-semibold tracking-wide">
         GDASH Panel
       </div>
 
-      <nav className="flex flex-col gap-1 px-3 mt-4">
+      {/* NAV */}
+      <nav className="flex flex-col gap-2 px-4 mt-2">
         {menu.map((item) => {
           const Icon = item.icon;
 
@@ -23,15 +25,19 @@ export function Sidebar() {
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors
+                `
+                flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium 
+                transition-all duration-200 cursor-pointer
+
                 ${
                   isActive
-                    ? "bg-gray-100 dark:bg-gray-800 text-blue-600 dark:text-blue-400"
-                    : "hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-200"
-                }`
+                    ? "bg-white text-[#229CFF] shadow-md"
+                    : "text-white/90 hover:bg-white/20 hover:text-white"
+                }
+                `
               }
             >
-              <Icon size={18} />
+              <Icon size={20} />
               {item.label}
             </NavLink>
           );
