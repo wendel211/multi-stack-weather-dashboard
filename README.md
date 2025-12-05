@@ -1,138 +1,329 @@
-# 🌦️ Multi-Stack Weather Dashboard  
-### Desafio GDASH — Sistema completo com API, Dashboard, Coletor e Queue
+# Multi-Stack Weather Dashboard
 
-Este projeto é um **ecossistema completo de monitoramento climático** desenvolvido para o desafio GDASH, integrando:
-- Backend **NestJS**  
-- Dashboard **React + Vite + Tailwind**  
-- Coletor de dados **Python**  
-- Worker de consumo com **Go**  
-- Mensageria **RabbitMQ**  
-- Banco **MongoDB**  
-- Integração via **Docker Compose**
+**Desafio GDASH** — Sistema completo com API, Dashboard, Coletor, IA e Queue
+
+Este projeto é um ecossistema completo de monitoramento climático desenvolvido para o desafio GDASH, integrando Backend NestJS, Dashboard React, Coletor Python, Worker Go, Serviço de IA com OpenAI, Mensageria RabbitMQ e Banco MongoDB, todos orquestrados via Docker Compose.
 
 ---
 
-## 🚀 Arquitetura Geral
+## Arquitetura Geral
 ```
-frontend (React) → API NestJS → MongoDB
-                        ↑
-            Worker Go (consome da fila)
-                        ↑
-         RabbitMQ Queue "weather_queue"
-                        ↑
-          Python Collector (produz dados)
+                    Frontend (React)
+                           ↓
+                    API NestJS ←→ MongoDB
+                           ↓
+                    AI Service (OpenAI)
+                           ↑
+                    Worker Go
+                           ↑
+                    RabbitMQ Queue
+                           ↑
+                    Python Collector
 ```
+
+### Fluxo de Dados
+
+1. **Coleta**: Python Collector busca dados climáticos e publica na fila RabbitMQ
+2. **Processamento**: Worker Go consome mensagens e envia para a API NestJS
+3. **Persistência**: API NestJS valida e armazena no MongoDB
+4. **Análise**: AI Service busca histórico e gera insights inteligentes com OpenAI
+5. **Visualização**: Dashboard React exibe dados, gráficos e insights em tempo real
 
 ---
 
-## 📦 Tecnologias Utilizadas
+## Stack Tecnológica
 
-- **Frontend:** React + Vite + TailwindCSS  
-- **Backend:** NestJS, Swagger, JWT  
-- **Storage:** MongoDB  
-- **Mensageria:** RabbitMQ  
-- **Collector:** Python 3.11  
-- **Worker:** Go 1.21  
-- **Infraestrutura:** Docker & Docker Compose  
-- **Charts:** Recharts  
-- **UI:** Componentes customizados + Tailwind
+| Camada | Tecnologias |
+|--------|-------------|
+| **Frontend** | React 18, Vite, TailwindCSS, Recharts |
+| **Backend** | NestJS, Swagger, JWT, TypeScript |
+| **IA** | Python 3.11, FastAPI, OpenAI GPT-4o-mini |
+| **Storage** | MongoDB 7 |
+| **Mensageria** | RabbitMQ |
+| **Collector** | Python 3.11, Requests |
+| **Worker** | Go 1.21, AMQP |
+| **Infraestrutura** | Docker, Docker Compose |
 
 ---
 
-## 🐳 Como executar tudo com Docker
+## Sistema de IA com OpenAI
 
-### 1. Iniciar o projeto
-```sh
-docker compose up -d --build
+### Funcionalidades do AI Service
+
+O AI Service é um microserviço independente que analisa dados climáticos históricos e gera insights inteligentes:
+
+- **Resumo geral** do clima atual e histórico dos últimos 20 registros
+- **Detecção de tendências** (aquecimento, resfriamento, estabilização)
+- **Alertas personalizados** (calor extremo, ventos fortes, umidade crítica)
+- **Classificação automática** (Agradável, Quente, Frio, Instável)
+
+### Configuração da API OpenAI
+
+#### Passo 1: Obter API Key
+
+1. Acesse [platform.openai.com](https://platform.openai.com)
+2. Crie uma conta ou faça login
+3. Navegue até **API Keys** e clique em **Create new secret key**
+4. Copie a chave gerada (formato: `sk-proj-...`)
+
+#### Passo 2: Configurar o Projeto
+```bash
+cp .env.example .env
 ```
 
-Aguarde até que todos os containers estejam saudáveis:
-```sh
+Edite o arquivo `.env` e adicione sua chave:
+```env
+OPENAI_API_KEY=sk-proj-SUA_CHAVE_AQUI
+```
+
+#### Passo 3: Endpoints Disponíveis
+
+| Endpoint | Método | Descrição |
+|----------|--------|-----------|
+| `/health` | GET | Verifica status do serviço |
+| `/generate-insights` | POST | Gera análise completa do histórico climático |
+
+### Fallback Inteligente
+
+O sistema possui mecanismo de fallback automático:
+
+- Se a OpenAI estiver indisponível, utiliza análise baseada em regras estatísticas
+- Calcula médias, desvios padrão e identifica anomalias
+- Garante que insights sejam sempre gerados, independente da disponibilidade da API externa
+
+---
+
+## Execução com Docker
+
+### Iniciando o Projeto
+```bash
+docker-compose up -d --build
+```
+
+Verifique o status dos containers:
+```bash
 docker ps
 ```
 
-### 2. Acessos
+### Endpoints e Acessos
 
-| Serviço | URL |
-|---------|-----|
-| Frontend | http://localhost |
-| API NestJS | http://localhost:3000 |
-| Swagger | http://localhost:3000/api |
-| RabbitMQ UI | http://localhost:15672 |
-| MongoDB | localhost:27017 |
+| Serviço | URL | Descrição |
+|---------|-----|-----------|
+| **Frontend** | http://localhost:3001 | Interface do usuário |
+| **API NestJS** | http://localhost:3000/api | API REST |
+| **Swagger** | http://localhost:3000/docs | Documentação interativa da API |
+| **AI Service** | http://localhost:8001 | Microserviço de IA |
+| **RabbitMQ Management** | http://localhost:15672 | Painel administrativo (guest/guest) |
+| **MongoDB** | localhost:27017 | Banco de dados |
+
+### Monitoramento de Logs
+```bash
+# Logs de todos os serviços
+docker-compose logs -f
+
+# Logs de serviços específicos
+docker logs ai-service -f
+docker logs nest-api -f
+docker logs python-collector -f
+docker logs worker-go -f
+```
+
+### Encerrando o Projeto
+```bash
+docker-compose down
+```
 
 ---
 
-## 🔐 Credenciais iniciais
+## Credenciais de Acesso
 
-Após a subida da API, um usuário admin é criado automaticamente:
+Após a inicialização da API, um usuário administrador é criado automaticamente:
 ```
 Email: admin@gdash.com  
 Senha: 123456
 ```
 
-Login diretamente na interface web.
+Acesse a interface web em **http://localhost:3001**
 
 ---
 
-## 📁 Estrutura do Projeto
-```bash
+## Estrutura do Projeto
+```
 multi-stack-weather-dashboard/
- ├── api/               # NestJS backend
- ├── frontend/          # React + Vite + Tailwind
- ├── collector/         # Python weather collector
- ├── worker/            # Go queue consumer
- ├── docker-compose.yml
- └── README.md
+ ├── api/               # Backend NestJS
+ ├── ai-service/        # Microserviço de IA (Python + FastAPI + OpenAI)
+ ├── frontend/          # Dashboard React + Vite + Tailwind
+ ├── collector/         # Coletor de dados climáticos (Python)
+ ├── worker/            # Consumidor de fila (Go)
+ ├── docker-compose.yml # Orquestração de containers
+ ├── .env.example       # Template de variáveis de ambiente
+ └── README.md          # Documentação
 ```
 
 ---
 
-## 📌 Funcionalidades Entregues
+## Funcionalidades Implementadas
 
-### ✔️ Dashboard Climático completo
-- Cards métricos
-- Gráfico de temperatura ao longo do tempo
-- Exportação CSV/XLSX
-- Insights de IA
-- Filtros avançados:
-  - Intervalo de datas
-  - Condição climática
-  - Temperatura min/max
+### Dashboard Climático
 
-### ✔️ CRUD completo de usuários
-- Criar, editar e excluir
-- Modal responsivo
-- UI moderna
-- Badges de roles
-- Feedback visual e toasts
+- Cards de métricas em tempo real (temperatura, umidade, vento, pressão)
+- Gráfico de temperatura com histórico temporal (Recharts)
+- Exportação de dados em formato CSV e XLSX
+- Insights de IA gerados pela OpenAI
+- Sistema de filtros avançados:
+  - Intervalo de datas customizável
+  - Filtro por condição climática
+  - Filtro por faixa de temperatura (mín/máx)
 
-### ✔️ Exploração de API externa (Pokémon API)
+### Análise Inteligente com IA
+
+- Processamento automático do histórico climático
+- Detecção de padrões e tendências
+- Geração de alertas contextualizados
+- Classificação do clima baseada em múltiplos fatores
+- Sistema de fallback para garantir disponibilidade
+
+### Gestão de Usuários
+
+- CRUD completo (Create, Read, Update, Delete)
+- Interface com modal responsivo
+- Sistema de roles (admin/user) com badges visuais
+- Feedback visual com toasts e animações
+- Validação de formulários
+
+### Integração com API Externa
+
+- Exploração da Pokémon API
 - Listagem com paginação
-- Modal de detalhes
-- UI animada
+- Filtros por tipo e busca textual
+- Modal de detalhes com animações
+- Interface colorida adaptada por tipo
 
-### ✔️ Tema Dark/Light implementado em toda a aplicação
+### Recursos Adicionais
 
-### ✔️ Pipeline Weather Data
-1. Python coleta dados → envia para RabbitMQ
-2. Worker Go consome → envia para API
-3. API persiste no MongoDB
-4. Dashboard atualiza
+- Tema Dark/Light com persistência
+- Autenticação JWT com refresh token
+- Documentação Swagger completa
+- Pipeline assíncrono de processamento de dados
 
 ---
 
-## 🎯 Status do Desafio
+## Pipeline de Processamento
 
-| Item | Status |
-|------|--------|
-| API funcional | ✔️ |
-| Dashboard completo | ✔️ |
-| Coletor | ✔️ |
-| Worker | ✔️ |
-| Docker + Compose | ✔️ |
-| Autenticação JWT | ✔️ |
-| CRUD Usuários | ✔️ |
-| Filtros Avançados | ✔️ |
-| Tema Dark/Light | ✔️ |
-| Bônus: Explore API | ✔️ |
+1. **Python Collector** coleta dados de APIs climáticas
+2. Publica mensagens na fila **RabbitMQ** (`weather_queue`)
+3. **Worker Go** consome mensagens da fila
+4. Worker envia dados validados para **API NestJS**
+5. API persiste no **MongoDB**
+6. **AI Service** analisa histórico e gera insights
+7. **Dashboard** consome e exibe dados atualizados
+
+---
+
+## Testes da API de IA
+
+### Via cURL
+```bash
+# Health check
+curl http://localhost:8001/health
+
+# Gerar insights
+curl -X POST http://localhost:8001/generate-insights
+```
+
+### Via Swagger
+
+1. Acesse http://localhost:3000/docs
+2. Execute login via endpoint POST `/api/auth/login`
+3. Copie o token JWT retornado
+4. Clique em **Authorize** e insira o token
+5. Teste o endpoint GET `/api/weather/insights`
+
+---
+
+## Status de Desenvolvimento
+
+| Funcionalidade | Status |
+|----------------|--------|
+| API REST funcional | Concluído |
+| Dashboard completo | Concluído |
+| Coletor Python | Concluído |
+| Worker Go | Concluído |
+| Docker Compose | Concluído |
+| Autenticação JWT | Concluído |
+| CRUD de Usuários | Concluído |
+| Filtros Avançados | Concluído |
+| Tema Dark/Light | Concluído |
+| Insights de IA (OpenAI) | Concluído |
+| Exportação CSV/XLSX | Concluído |
+| Integração API pública | Concluído |
+| Bônus: Explore API | Concluído |
+
+---
+
+## Troubleshooting
+
+### Erro ao gerar insights
+
+**Possíveis causas:**
+- Variável `OPENAI_API_KEY` não configurada no `.env`
+- Chave de API inválida ou expirada
+- AI Service não está em execução
+
+**Solução:**
+```bash
+# Verificar se o serviço está rodando
+docker ps | grep ai-service
+
+# Verificar logs do AI Service
+docker logs ai-service -f
+
+# Validar variável de ambiente
+docker exec ai-service env | grep OPENAI
+
+# Reiniciar o serviço
+docker-compose restart ai-service
+```
+
+### Erro de conexão com a API
+```bash
+# Verificar status de todos os serviços
+docker-compose ps
+
+# Reiniciar todos os containers
+docker-compose down
+docker-compose up -d --build
+```
+
+### RabbitMQ não está processando mensagens
+```bash
+# Verificar logs do RabbitMQ
+docker logs rabbitmq -f
+
+# Verificar logs do Worker Go
+docker logs worker-go -f
+
+# Acessar painel do RabbitMQ
+# http://localhost:15672 (guest/guest)
+```
+
+---
+
+## Roadmap Futuro
+
+- Implementar testes unitários e de integração
+- Configurar CI/CD com GitHub Actions
+- Deploy em ambiente de produção (Railway/Render/AWS)
+- Adicionar múltiplas fontes de dados climáticos
+- Implementar sistema de notificações push
+- Adicionar cache com Redis
+- Implementar rate limiting na API
+
+---
+
+## Licença
+
+Este projeto foi desenvolvido para o processo seletivo **GDASH 2025/02**.
+
+---
+
