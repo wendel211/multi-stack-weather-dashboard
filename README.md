@@ -1,8 +1,8 @@
 # Multi-Stack Weather Dashboard
 
-**Desafio GDASH** — Sistema completo com API, Dashboard, Coletor, IA e Queue
+**Desafio GDASH** - Sistema completo com API, Dashboard, Coletor, IA e Queue
 
-Este projeto é um ecossistema completo de monitoramento climático desenvolvido para o desafio GDASH, integrando Backend NestJS, Dashboard React, Coletor Python, Worker Go, Serviço de IA com OpenAI, Mensageria RabbitMQ e Banco MongoDB, todos orquestrados via Docker Compose.
+Este projeto é um ecossistema completo de monitoramento climático desenvolvido para uma empresa de clima, integrando Backend NestJS, Dashboard React, Coletor Python, Worker Go, Serviço de IA com OpenAI, Mensageria RabbitMQ e Banco MongoDB, todos orquestrados via Docker Compose.
 
 ---
 
